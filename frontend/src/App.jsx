@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Home from './pages/Home';
 import Lobby from './pages/Lobby';
+import Game from './pages/Game';
 import './App.css';
 
 const SOCKET_URL = 'http://localhost:5000';
@@ -13,6 +14,7 @@ function App() {
   const [lobbies, setLobbies] = useState([]);
   const [currentLobby, setCurrentLobby] = useState(null);
   const [error, setError] = useState(null);
+  const [gameActive, setGameActive] = useState(false);
 
   useEffect(() => {
     // Conectar a Socket.IO
@@ -66,9 +68,21 @@ function App() {
     newSocket.on('lobby_closed', (data) => {
       console.log('Lobby cerrado:', data.message);
       setCurrentLobby(null);
+      setGameActive(false);
       setError(data.message);
       setTimeout(() => setError(null), 3000);
       newSocket.emit('get_lobbies');
+    });
+
+    newSocket.on('game_started', (data) => {
+      console.log('Juego iniciado:', data);
+      setGameActive(true);
+    });
+
+    newSocket.on('returned_to_lobby', (data) => {
+      console.log('Volviendo al lobby:', data);
+      setGameActive(false);
+      setCurrentLobby(data.lobby);
     });
 
     return () => {
@@ -139,10 +153,25 @@ function App() {
           <Route 
             path="/lobby" 
             element={
-              currentLobby ? (
+              currentLobby && !gameActive ? (
                 <Lobby 
                   lobby={currentLobby} 
                   socket={socket}
+                />
+              ) : gameActive ? (
+                <Navigate to="/game" replace />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/game" 
+            element={
+              gameActive && currentLobby ? (
+                <Game 
+                  socket={socket}
+                  currentLobby={currentLobby}
                 />
               ) : (
                 <Navigate to="/" replace />
