@@ -7,6 +7,7 @@ function Lobby({ lobby, socket }) {
   const [currentLobby, setCurrentLobby] = useState(lobby);
   const [isHost, setIsHost] = useState(false);
   const [mySocketId, setMySocketId] = useState(null);
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
   useEffect(() => {
     setCurrentLobby(lobby);
@@ -45,8 +46,8 @@ function Lobby({ lobby, socket }) {
     };
 
     const handleGameStarted = (data) => {
-      alert('¡El juego está comenzando!');
-      // Aquí puedes redirigir a la pantalla del juego
+      console.log('Juego iniciado, generando preguntas...');
+      setIsGeneratingQuestions(true);
     };
 
     const handleLobbyClosed = (data) => {
@@ -76,7 +77,8 @@ function Lobby({ lobby, socket }) {
   };
 
   const handleStartGame = () => {
-    if (socket) {
+    if (socket && allPlayersReady && !isGeneratingQuestions) {
+      setIsGeneratingQuestions(true);
       socket.emit('start_game');
     }
   };
@@ -172,9 +174,16 @@ function Lobby({ lobby, socket }) {
               <button 
                 className="btn-start-game"
                 onClick={handleStartGame}
-                disabled={!allPlayersReady || currentLobby?.players.length < 2}
+                disabled={!allPlayersReady || currentLobby?.players.length < 2 || isGeneratingQuestions}
               >
-                🚀 Iniciar Juego
+                {isGeneratingQuestions ? (
+                  <>
+                    <span className="spinner-small"></span>
+                    Generando preguntas...
+                  </>
+                ) : (
+                  <>🚀 Iniciar Juego</>
+                )}
               </button>
               {!allPlayersReady && currentLobby?.players.length >= 2 && (
                 <p className="warning-text">

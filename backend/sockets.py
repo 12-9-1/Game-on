@@ -2,11 +2,26 @@ from flask_socketio import emit, join_room, leave_room
 from flask import request
 import uuid
 from datetime import datetime
+import time
+from ai_service import generate_round_questions, generate_single_question_sync
+import threading
 
 # Almacenamiento en memoria para lobbies
 lobbies = {}
 # Mapeo de socket_id a lobby_id
 user_lobbies = {}
+# Almacenamiento de preguntas activas por lobby
+active_questions = {}
+# Almacenamiento de respuestas de jugadores
+player_answers = {}
+# Caché de preguntas usadas por lobby (para evitar repeticiones)
+used_questions_cache = {}
+# Cola de preguntas pre-cargadas por lobby
+question_queue = {}
+# Threads de generación de preguntas
+generation_threads = {}
+# Temporizadores de preguntas por lobby
+question_timers = {}
 
 def register_socket_events(socketio):
     """Registra todos los eventos de Socket.IO"""
@@ -237,6 +252,43 @@ def register_socket_events(socketio):
             'lobby': lobby
         }, room=lobby_id)
     
+    def start_question_generator(lobby_id):
+        """
+        Inicia un thread que genera preguntas continuamente para un lobby
+        """
+        def generate_questions_continuously():
+            print(f'Thread de generación iniciado para lobby {lobby_id}')
+            while lobby_id in lobbies and lobbies[lobby_id]['status'] == 'playing':
+                # Si la cola tiene menos de 2 preguntas, generar una nueva
+                if lobby_id in question_queue and len(question_queue[lobby_id]) < 2:
+                    print(f'Generando pregunta para cola del lobby {lobby_id}...')
+                    question = generate_single_question_sync()
+                    if question:
+                        question_queue[lobby_id].append(question)
+                        print(f'Pregunta agregada a cola. Total en cola: {len(question_queue[lobby_id])}')
+                time.sleep(2)  # Esperar 2 segundos antes de verificar de nuevo
+            print(f'Thread de generación terminado para lobby {lobby_id}')
+        
+        # Iniciar thread
+        thread = threading.Thread(target=generate_questions_continuously, daemon=True)
+        thread.start()
+        generation_threads[lobby_id] = thread
+    
+    def get_next_question(lobby_id):
+        """
+        Obtiene la siguiente pregunta de la cola, o genera una si está vacía
+        """
+        if lobby_id not in question_queue:
+            question_queue[lobby_id] = []
+        
+        # Si hay preguntas en cola, usar la primera
+        if len(question_queue[lobby_id]) > 0:
+            return question_queue[lobby_id].pop(0)
+        
+        # Si no hay preguntas en cola, generar una inmediatamente
+        print(f'Cola vacía, generando pregunta inmediata...')
+        return generate_single_question_sync()
+    
     @socketio.on('start_game')
     def handle_start_game():
         sid = request.sid
@@ -262,9 +314,459 @@ def register_socket_events(socketio):
         
         # Cambiar estado del lobby
         lobby['status'] = 'playing'
+        lobby['win_score'] = 10000  # Puntos necesarios para ganar
+        
+        # Inicializar puntuaciones
+        for player in lobby['players']:
+            player['score'] = 0
+        
+        # Inicializar cola de preguntas
+        question_queue[lobby_id] = []
+        
+        # Generar primera pregunta inmediatamente
+        print(f'Generando primera pregunta para el lobby {lobby_id}...')
+        first_question = generate_single_question_sync()
+        
+        if not first_question:
+            emit('error', {'message': 'Error generando pregunta inicial'})
+            return
+        
+        # Inicializar datos del juego
+        active_questions[lobby_id] = {
+            'current_question': first_question,
+            'question_number': 1
+        }
+        
+        # Iniciar generador de preguntas en background
+        start_question_generator(lobby_id)
         
         # Notificar a todos que el juego comienza
         emit('game_started', {
             'lobby': lobby,
-            'message': '¡El juego está comenzando!'
+            'win_score': 10000,
+            'message': '¡Primero en llegar a 10,000 puntos gana!'
         }, room=lobby_id)
+        
+        # Enviar la primera pregunta después de 2 segundos
+        socketio.sleep(2)
+        send_next_question(lobby_id, socketio)
+    
+    def send_next_question(lobby_id, socketio):
+        """Envía la siguiente pregunta a todos los jugadores del lobby"""
+        if lobby_id not in active_questions:
+            return
+        
+        question_data = active_questions[lobby_id]
+        question = question_data['current_question']
+        
+        # Preparar pregunta sin la respuesta correcta
+        question_to_send = {
+            'question': question['question'],
+            'options': question['options'],
+            'difficulty': question['difficulty'],
+            'category': question['category'],
+            'question_number': question_data['question_number'],
+            'time_limit': 30  # 30 segundos para responder
+        }
+        
+        # Inicializar respuestas para esta pregunta
+        player_answers[lobby_id] = {
+            'start_time': time.time(),
+            'answers': {},
+            'correct_answer': question['correct_answer']
+        }
+        
+        print(f'Enviando pregunta #{question_data["question_number"]} al lobby {lobby_id}')
+        
+        # Enviar pregunta a todos los jugadores
+        socketio.emit('new_question', question_to_send, room=lobby_id)
+        
+        # Cancelar temporizador anterior si existe
+        if lobby_id in question_timers and question_timers[lobby_id]:
+            try:
+                question_timers[lobby_id].cancel()
+            except:
+                pass
+        
+        # Crear temporizador automático para avanzar cuando se acabe el tiempo
+        def auto_advance():
+            """Avanza automáticamente a la siguiente pregunta cuando se acaba el tiempo"""
+            if lobby_id not in lobbies or lobby_id not in active_questions:
+                return
+            
+            lobby = lobbies[lobby_id]
+            
+            # Marcar como respondido (incorrectamente) a los jugadores que no respondieron
+            if lobby_id in player_answers:
+                for player in lobby['players']:
+                    sid = player['socket_id']
+                    if sid not in player_answers[lobby_id]['answers']:
+                        player_answers[lobby_id]['answers'][sid] = {
+                            'answer_index': -1,
+                            'is_correct': False,
+                            'points': 0,
+                            'response_time': 30
+                        }
+            
+            print(f'⏰ Tiempo agotado para pregunta en lobby {lobby_id}, avanzando...')
+            
+            # Esperar 2 segundos para que vean que se acabó el tiempo
+            socketio.sleep(2)
+            
+            # Obtener siguiente pregunta
+            next_question = get_next_question(lobby_id)
+            
+            if next_question:
+                active_questions[lobby_id]['current_question'] = next_question
+                active_questions[lobby_id]['question_number'] += 1
+                send_next_question(lobby_id, socketio)
+            else:
+                print('No hay más preguntas disponibles')
+                end_game(lobby_id, socketio)
+        
+        # Iniciar temporizador (32 segundos: 30 de pregunta + 2 de margen)
+        timer = threading.Timer(32.0, auto_advance)
+        timer.daemon = True
+        timer.start()
+        question_timers[lobby_id] = timer
+    
+    def end_game(lobby_id, socketio):
+        """Finaliza el juego y muestra resultados"""
+        if lobby_id not in lobbies:
+            return
+        
+        # Cancelar temporizador si existe
+        if lobby_id in question_timers and question_timers[lobby_id]:
+            try:
+                question_timers[lobby_id].cancel()
+            except:
+                pass
+        
+        lobby = lobbies[lobby_id]
+        lobby['status'] = 'round_finished'
+        
+        # Ordenar jugadores por puntuación
+        sorted_players = sorted(
+            lobby['players'],
+            key=lambda p: p.get('score', 0),
+            reverse=True
+        )
+        
+        results = [
+            {
+                'name': player['name'],
+                'score': player.get('score', 0),
+                'rank': idx + 1
+            }
+            for idx, player in enumerate(sorted_players)
+        ]
+        
+        print(f'Ronda terminada en lobby {lobby_id}')
+        
+        # Enviar resultados de la ronda
+        socketio.emit('round_ended', {
+            'results': results,
+            'winner': results[0] if results else None
+        }, room=lobby_id)
+        
+        # Limpiar datos de la ronda actual
+        if lobby_id in active_questions:
+            del active_questions[lobby_id]
+        if lobby_id in player_answers:
+            del player_answers[lobby_id]
+    
+    @socketio.on('submit_answer')
+    def handle_submit_answer(data):
+        """Maneja la respuesta de un jugador"""
+        sid = request.sid
+        
+        if sid not in user_lobbies:
+            emit('error', {'message': 'No estás en ningún lobby'})
+            return
+        
+        lobby_id = user_lobbies[sid]
+        
+        if lobby_id not in lobbies or lobby_id not in active_questions:
+            emit('error', {'message': 'No hay juego activo'})
+            return
+        
+        lobby = lobbies[lobby_id]
+        question_data = active_questions[lobby_id]
+        current_question = question_data['current_question']
+        
+        # Verificar si el jugador ya respondió
+        if lobby_id in player_answers:
+            if sid in player_answers[lobby_id]['answers']:
+                emit('error', {'message': 'Ya respondiste esta pregunta'})
+                return
+        
+        answer_index = data.get('answer_index')
+        answer_time = time.time()
+        
+        # Calcular tiempo de respuesta
+        start_time = player_answers[lobby_id]['start_time']
+        response_time = answer_time - start_time
+        
+        # Verificar si la respuesta es correcta
+        correct_answer = player_answers[lobby_id]['correct_answer']
+        is_correct = answer_index == correct_answer
+        
+        # Calcular puntos (más puntos por respuestas rápidas y correctas)
+        points = 0
+        if is_correct:
+            # Base: 1000 puntos
+            # Bonus por velocidad: hasta 500 puntos adicionales
+            time_bonus = max(0, 500 - int(response_time * 20))
+            points = 1000 + time_bonus
+        
+        # Actualizar puntuación del jugador
+        player_name = None
+        player_score = 0
+        for player in lobby['players']:
+            if player['socket_id'] == sid:
+                player['score'] = player.get('score', 0) + points
+                player_name = player['name']
+                player_score = player['score']
+                break
+        
+        # Guardar respuesta
+        player_answers[lobby_id]['answers'][sid] = {
+            'answer_index': answer_index,
+            'is_correct': is_correct,
+            'points': points,
+            'response_time': response_time
+        }
+        
+        # Notificar al jugador su resultado
+        emit('answer_result', {
+            'is_correct': is_correct,
+            'points': points,
+            'total_score': player_score,
+            'correct_answer': correct_answer,
+            'explanation': current_question.get('explanation', '')
+        })
+        
+        # Notificar a todos que un jugador respondió
+        emit('player_answered', {
+            'player_name': player_name,
+            'total_answered': len(player_answers[lobby_id]['answers']),
+            'total_players': len(lobby['players'])
+        }, room=lobby_id)
+        
+        # Verificar si alguien ganó (llegó a 10,000 puntos)
+        if player_score >= lobby.get('win_score', 10000):
+            print(f'¡{player_name} ganó con {player_score} puntos!')
+            
+            # Cancelar temporizador ya que el juego terminó
+            if lobby_id in question_timers and question_timers[lobby_id]:
+                try:
+                    question_timers[lobby_id].cancel()
+                except:
+                    pass
+            
+            socketio.sleep(2)
+            end_game(lobby_id, socketio)
+            return
+        
+        # Si todos respondieron, pasar a la siguiente pregunta
+        if len(player_answers[lobby_id]['answers']) >= len(lobby['players']):
+            # Cancelar el temporizador automático ya que todos respondieron
+            if lobby_id in question_timers and question_timers[lobby_id]:
+                try:
+                    question_timers[lobby_id].cancel()
+                    print(f'✓ Todos respondieron, cancelando temporizador automático')
+                except:
+                    pass
+            
+            socketio.sleep(3)  # Esperar 3 segundos para que vean la explicación
+            
+            # Obtener siguiente pregunta de la cola
+            next_question = get_next_question(lobby_id)
+            
+            if next_question:
+                active_questions[lobby_id]['current_question'] = next_question
+                active_questions[lobby_id]['question_number'] += 1
+                send_next_question(lobby_id, socketio)
+            else:
+                print('No hay más preguntas disponibles')
+                end_game(lobby_id, socketio)
+    
+    @socketio.on('time_up')
+    def handle_time_up():
+        """Maneja cuando se acaba el tiempo para una pregunta"""
+        sid = request.sid
+        
+        if sid not in user_lobbies:
+            return
+        
+        lobby_id = user_lobbies[sid]
+        
+        if lobby_id not in active_questions or lobby_id not in player_answers:
+            return
+        
+        # Si el jugador no respondió, registrar como respuesta incorrecta
+        if sid not in player_answers[lobby_id]['answers']:
+            player_answers[lobby_id]['answers'][sid] = {
+                'answer_index': -1,
+                'is_correct': False,
+                'points': 0,
+                'response_time': 30
+            }
+        
+        # Si todos respondieron o se acabó el tiempo para todos, continuar
+        if len(player_answers[lobby_id]['answers']) >= len(lobbies[lobby_id]['players']):
+            socketio.sleep(2)
+            active_questions[lobby_id]['current_question_index'] += 1
+            send_next_question(lobby_id, socketio)
+    
+    @socketio.on('request_new_round')
+    def handle_request_new_round():
+        """Maneja la solicitud de una nueva ronda"""
+        sid = request.sid
+        
+        if sid not in user_lobbies:
+            emit('error', {'message': 'No estás en ningún lobby'})
+            return
+        
+        lobby_id = user_lobbies[sid]
+        
+        if lobby_id not in lobbies:
+            emit('error', {'message': 'Lobby no encontrado'})
+            return
+        
+        lobby = lobbies[lobby_id]
+        
+        # Verificar que sea el host
+        if lobby['host'] != sid:
+            emit('error', {'message': 'Solo el host puede iniciar una nueva ronda'})
+            return
+        
+        # Cambiar estado a waiting_new_round
+        lobby['status'] = 'waiting_new_round'
+        
+        # Resetear estado ready de todos los jugadores
+        for player in lobby['players']:
+            if not player['is_host']:
+                player['ready'] = False
+        
+        print(f'Nueva ronda solicitada en lobby {lobby_id}')
+        
+        # Notificar a todos que se espera una nueva ronda
+        emit('waiting_new_round', {
+            'lobby': lobby,
+            'message': 'Esperando a que todos estén listos para la nueva ronda'
+        }, room=lobby_id)
+    
+    @socketio.on('ready_for_new_round')
+    def handle_ready_for_new_round():
+        """Maneja cuando un jugador está listo para la nueva ronda"""
+        sid = request.sid
+        
+        if sid not in user_lobbies:
+            emit('error', {'message': 'No estás en ningún lobby'})
+            return
+        
+        lobby_id = user_lobbies[sid]
+        lobby = lobbies[lobby_id]
+        
+        # Marcar jugador como listo
+        for player in lobby['players']:
+            if player['socket_id'] == sid:
+                player['ready'] = True
+                break
+        
+        # Notificar a todos
+        emit('player_ready_changed', {
+            'lobby': lobby
+        }, room=lobby_id)
+        
+        # Verificar si todos están listos
+        all_ready = all(p['ready'] or p['is_host'] for p in lobby['players'])
+        
+        if all_ready:
+            # Iniciar nueva ronda
+            lobby['status'] = 'playing'
+            
+            # Resetear puntuaciones para nueva ronda
+            for player in lobby['players']:
+                player['score'] = 0
+            
+            # Generar nuevas preguntas
+            print(f'Generando nuevas preguntas para el lobby {lobby_id}...')
+            print(f'Preguntas ya usadas en este lobby: {len(used_questions_cache.get(lobby_id, []))}')
+            
+            questions = generate_round_questions(num_questions=5)
+            
+            # Guardar nuevas preguntas en el caché
+            if lobby_id not in used_questions_cache:
+                used_questions_cache[lobby_id] = []
+            
+            for q in questions:
+                if 'question' in q:
+                    used_questions_cache[lobby_id].append(q['question'])
+            
+            # Almacenar preguntas del lobby
+            active_questions[lobby_id] = {
+                'questions': questions,
+                'current_question_index': 0,
+                'total_questions': len(questions)
+            }
+            
+            # Notificar que la nueva ronda comienza
+            emit('new_round_started', {
+                'lobby': lobby,
+                'total_questions': len(questions),
+                'message': '¡Nueva ronda comenzando!'
+            }, room=lobby_id)
+            
+            # Enviar la primera pregunta después de 2 segundos
+            socketio.sleep(2)
+            send_next_question(lobby_id, socketio)
+    
+    @socketio.on('back_to_lobby')
+    def handle_back_to_lobby():
+        """Maneja cuando el host decide volver al lobby"""
+        sid = request.sid
+        
+        if sid not in user_lobbies:
+            emit('error', {'message': 'No estás en ningún lobby'})
+            return
+        
+        lobby_id = user_lobbies[sid]
+        
+        if lobby_id not in lobbies:
+            emit('error', {'message': 'Lobby no encontrado'})
+            return
+        
+        lobby = lobbies[lobby_id]
+        
+        # Verificar que sea el host
+        if lobby['host'] != sid:
+            emit('error', {'message': 'Solo el host puede volver al lobby'})
+            return
+        
+        # Cambiar estado a waiting
+        lobby['status'] = 'waiting'
+        
+        # Resetear puntuaciones y estado ready
+        for player in lobby['players']:
+            player['score'] = 0
+            if not player['is_host']:
+                player['ready'] = False
+        
+        # Limpiar datos del juego
+        if lobby_id in active_questions:
+            del active_questions[lobby_id]
+        if lobby_id in player_answers:
+            del player_answers[lobby_id]
+        # Limpiar caché de preguntas al volver al lobby
+        if lobby_id in used_questions_cache:
+            del used_questions_cache[lobby_id]
+        
+        print(f'Volviendo al lobby {lobby_id}')
+        
+        # Notificar a todos que vuelven al lobby
+        emit('returned_to_lobby', {
+            'lobby': lobby,
+            'message': 'Volviendo al lobby'
+        }, room=lobby_id, include_self=True, broadcast=True)
