@@ -293,7 +293,7 @@
   background: var(--gold-400);
 }
 
-/* Floating Button */
+/* Floating Button - OCULTO POR DEFECTO EN DESKTOP */
 .floating-button {
   display: none;
   position: fixed;
@@ -303,16 +303,15 @@
   height: 60px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--teal-light), #0d7377);
-  border: 2px solid var(--gold-400);
+  border: 3px solid var(--gold-400);
   color: white;
-  font-size: 1.5rem;
   cursor: pointer;
   z-index: 999;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(13, 115, 119, 0.5);
-  display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
 }
 
 .floating-button:hover {
@@ -324,12 +323,13 @@
   transform: scale(0.95);
 }
 
-.icon-button {
-  background-color: var(--gold-400);
-  color: var(--gold-400);
+/* Iconos visibles en blanco */
+.floating-button svg,
+.modal-close-button svg {
+  color: white;
 }
 
-/* Modal Overlay */
+/* Modal Overlay - OCULTO POR DEFECTO */
 .sidebar-modal-overlay {
   display: none;
   position: fixed;
@@ -337,7 +337,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   z-index: 1000;
   animation: fadeIn 0.3s ease;
 }
@@ -348,8 +348,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(13, 115, 119, 0.7);
-  border: 2px solid var(--teal-light);
+  background: linear-gradient(135deg, #0a4d4e, #0d7377);
+  border: none;
   display: flex;
   flex-direction: column;
   z-index: 1001;
@@ -361,7 +361,7 @@
   top: 1rem;
   right: 1rem;
   background: linear-gradient(135deg, var(--teal-light), #0d7377);
-  border: 2px solid var(--gold-400);
+  border: 3px solid var(--gold-400);
   color: white;
   width: 50px;
   height: 50px;
@@ -372,6 +372,7 @@
   justify-content: center;
   transition: all 0.3s ease;
   z-index: 1002;
+  padding: 0;
 }
 
 .modal-close-button:hover {
@@ -410,16 +411,19 @@
 }
 
 @media (max-width: 768px) {
+  /* Ocultar sidebar desktop */
   .game-sidebar {
     display: none;
   }
 
+  /* Mostrar botón flotante SOLO en móvil */
   .floating-button {
     display: flex !important;
   }
 
-  .sidebar-modal-overlay {
-    display: block !important;
+  /* Mostrar modal cuando isModalOpen es true */
+  .sidebar-modal-overlay.active {
+    display: block;
   }
 
   .ranking-title {
