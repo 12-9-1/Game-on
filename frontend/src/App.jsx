@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Home from './pages/Home';
 import Lobby from './pages/Lobby';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Account from './pages/Account';
+import { useAuth } from './store/auth';
 import './App.css';
 
 const SOCKET_URL = 'http://localhost:5000';
 
 function App() {
+  const { user, token, clearAuth } = useAuth();
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [lobbies, setLobbies] = useState([]);
@@ -18,6 +23,7 @@ function App() {
     // Conectar a Socket.IO
     const newSocket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
+      auth: token ? { token } : undefined,
     });
 
     newSocket.on('connect', () => {
@@ -114,6 +120,19 @@ function App() {
   return (
     <Router>
       <div className="app-container">
+        <div style={{ display:'flex', gap:12, padding:12, alignItems:'center' }}>
+          {user ? (
+            <>
+              <Link to="/account">Mi cuenta</Link>
+              <button className="btn btn-ghost" onClick={clearAuth} style={{ marginLeft: 'auto', width: 'auto' }}>Salir</button>
+            </>
+          ) : (
+            <>
+              <Link className="btn btn-ghost" to="/login" style={{ width: 'auto' }}>Ingresar</Link>
+              <Link className="btn btn-primary" to="/register" style={{ width: 'auto' }}>Registrarme</Link>
+            </>
+          )}
+        </div>
         {error && (
           <div className="error-toast">
             ⚠️ {error}
@@ -149,6 +168,9 @@ function App() {
               )
             } 
           />
+          <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+          <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
+          <Route path="/account" element={user ? <Account /> : <Navigate to="/login" replace />} />
         </Routes>
       </div>
     </Router>

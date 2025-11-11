@@ -1,39 +1,40 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../store/auth';
 import './Home.css';
 
 function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const navigate = useNavigate();
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [playerName, setPlayerName] = useState('');
+  const { user } = useAuth();
+  const [playerName, setPlayerName] = useState(user?.name || '');
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [joinLobbyId, setJoinLobbyId] = useState('');
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const handleCreateLobby = (e) => {
     e.preventDefault();
-    if (playerName.trim()) {
-      onCreateLobby({ player_name: playerName, max_players: maxPlayers });
+    const nameToUse = playerName.trim() || user?.name || 'Jugador';
+    if (nameToUse) {
+      onCreateLobby({ player_name: nameToUse, max_players: maxPlayers });
       setShowCreateForm(false);
-      setPlayerName('');
     }
   };
 
   const handleJoinLobby = (e) => {
     e.preventDefault();
-    if (playerName.trim() && joinLobbyId.trim()) {
-      onJoinLobby({ lobby_id: joinLobbyId, player_name: playerName });
+    const nameToUse = playerName.trim() || user?.name || '';
+    if (nameToUse && joinLobbyId.trim()) {
+      onJoinLobby({ lobby_id: joinLobbyId, player_name: nameToUse });
       setShowJoinForm(false);
-      setPlayerName('');
       setJoinLobbyId('');
     }
   };
 
   const handleQuickJoin = (lobbyId) => {
-    const name = prompt('Ingresa tu nombre:');
-    if (name) {
-      onJoinLobby({ lobby_id: lobbyId, player_name: name });
-    }
+    const defaultName = user?.name || '';
+    const name = prompt('Ingresa tu nombre:', defaultName);
+    if (name) onJoinLobby({ lobby_id: lobbyId, player_name: name });
   };
 
   return (

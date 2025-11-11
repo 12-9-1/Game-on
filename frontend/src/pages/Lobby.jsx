@@ -101,6 +101,9 @@ function Lobby({ lobby, socket }) {
       <div className="lobby-header">
         <div className="lobby-title-section">
           <h1>🎮 Lobby #{currentLobby?.id}</h1>
+          <div className="player-greeting">
+            Hola, {myPlayer?.name || 'Jugador'}
+          </div>
           <button className="btn-copy-code" onClick={copyLobbyCode}>
             📋 Copiar Código
           </button>

@@ -22,8 +22,16 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret or 'dev-secret-key'
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# Inicializar Socket.IO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# Registrar blueprint de autenticación
+from auth import auth_bp
+app.register_blueprint(auth_bp, url_prefix='/auth')
+
+# Inicializar Socket.IO con eventlet
+socketio = SocketIO(app, 
+                   cors_allowed_origins="*", 
+                   async_mode='eventlet',
+                   logger=True,
+                   engineio_logger=True)
 
 # Importar y registrar eventos de Socket.IO
 from sockets import register_socket_events
