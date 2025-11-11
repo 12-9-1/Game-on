@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import GameSidebar from '../components/GameSidebar';
 import './Game.css';
 
 function Game({ socket, currentLobby }) {
@@ -19,6 +20,7 @@ function Game({ socket, currentLobby }) {
   const [isHost, setIsHost] = useState(false);
   const [myScore, setMyScore] = useState(0);
   const [winScore, setWinScore] = useState(10000);
+  const [mySocketId, setMySocketId] = useState(null);
 
   useEffect(() => {
     if (!socket || !currentLobby) {
@@ -72,6 +74,17 @@ function Game({ socket, currentLobby }) {
       setLoading(false);
     });
 
+    // Escuchar cuando el juego inicia para obtener el lobby actualizado
+    socket.on('game_started', (data) => {
+      console.log('Juego iniciado:', data);
+      if (data.lobby) {
+        setLobby(data.lobby);
+      }
+      if (data.win_score) {
+        setWinScore(data.win_score);
+      }
+    });
+
     // Escuchar inicio de nueva ronda
     socket.on('new_round_started', (data) => {
       console.log('Nueva ronda iniciada:', data);
@@ -103,6 +116,19 @@ function Game({ socket, currentLobby }) {
       navigate('/');
     });
 
+    // Escuchar actualizaciones del lobby (puntuaciones)
+    socket.on('lobby_updated', (data) => {
+      console.log('Lobby actualizado:', data);
+      if (data.lobby) {
+        setLobby(data.lobby);
+        // Actualizar mi puntuación
+        const myPlayer = data.lobby.players?.find(p => p.socket_id === socket.id);
+        if (myPlayer && myPlayer.score !== undefined) {
+          setMyScore(myPlayer.score);
+        }
+      }
+    });
+
     return () => {
       socket.off('new_question');
       socket.off('answer_result');
@@ -112,8 +138,17 @@ function Game({ socket, currentLobby }) {
       socket.off('new_round_started');
       socket.off('player_ready_changed');
       socket.off('returned_to_lobby');
+      socket.off('lobby_updated');
+      socket.off('game_started');
     };
   }, [socket, currentLobby, navigate]);
+
+  // Guardar socket ID cuando esté disponible
+  useEffect(() => {
+    if (socket?.id) {
+      setMySocketId(socket.id);
+    }
+  }, [socket]);
 
   // Temporizador
   // Determinar si el usuario es host
@@ -297,109 +332,121 @@ function Game({ socket, currentLobby }) {
 
   return (
     <div className="game-container">
-      <div className="game-header">
-        <div className="question-info">
-          <span className="question-number">
-            Pregunta #{question.question_number}
-          </span>
-          <span 
-            className="difficulty-badge" 
-            style={{ backgroundColor: getDifficultyColor(question.difficulty) }}
-          >
-            {question.difficulty === 'easy' ? 'Fácil' : 
-             question.difficulty === 'medium' ? 'Media' : 'Difícil'}
-          </span>
-          <span className="category-badge">{question.category}</span>
-        </div>
-
-        <div className="score-display">
-          <div className="my-score">
-            <span className="score-label">Tu puntaje:</span>
-            <span className="score-value">{myScore.toLocaleString()}</span>
-          </div>
-          <div className="win-score">
-            <span className="score-label">Objetivo:</span>
-            <span className="score-value">{winScore.toLocaleString()}</span>
-          </div>
-        </div>
-
-        <div className="timer" style={{ color: getTimerColor() }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <circle cx="12" cy="12" r="10" strokeWidth="2"/>
-            <path d="M12 6v6l4 2" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-          <span>{timeLeft}s</span>
-        </div>
-      </div>
-
-      <div className="question-card">
-        <h2 className="question-text">{question.question}</h2>
-
-        <div className="options-grid">
-          {question.options.map((option, index) => {
-            const isSelected = selectedAnswer === index;
-            const isCorrect = answerResult && index === answerResult.correct_answer;
-            const isWrong = answerResult && isSelected && !answerResult.is_correct;
-
-            let className = 'option-button';
-            if (hasAnswered) {
-              if (isCorrect) className += ' correct';
-              else if (isWrong) className += ' wrong';
-              else className += ' disabled';
-            } else if (isSelected) {
-              className += ' selected';
-            }
-
-            return (
-              <button
-                key={index}
-                className={className}
-                onClick={() => handleAnswerClick(index)}
-                disabled={hasAnswered}
+      <div className="game-layout">
+        <div className="game-main">
+          <div className="game-header">
+            <div className="question-info">
+              <span className="question-number">
+                Pregunta #{question.question_number}
+              </span>
+              <span 
+                className="difficulty-badge" 
+                style={{ backgroundColor: getDifficultyColor(question.difficulty) }}
               >
-                <span className="option-letter">
-                  {String.fromCharCode(65 + index)}
-                </span>
-                <span className="option-text">{option}</span>
-                {hasAnswered && isCorrect && <span className="check-mark">✓</span>}
-                {hasAnswered && isWrong && <span className="x-mark">✗</span>}
-              </button>
-            );
-          })}
+                {question.difficulty === 'easy' ? 'Fácil' : 
+                 question.difficulty === 'medium' ? 'Media' : 'Difícil'}
+              </span>
+              <span className="category-badge">{question.category}</span>
+            </div>
+
+            <div className="score-display">
+              <div className="my-score">
+                <span className="score-label">Tu puntaje:</span>
+                <span className="score-value">{myScore.toLocaleString()}</span>
+              </div>
+              <div className="win-score">
+                <span className="score-label">Objetivo:</span>
+                <span className="score-value">{winScore.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="timer" style={{ color: getTimerColor() }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="10" strokeWidth="2"/>
+                <path d="M12 6v6l4 2" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              <span>{timeLeft}s</span>
+            </div>
+          </div>
+
+          <div className="question-card">
+            <h2 className="question-text">{question.question}</h2>
+
+            <div className="options-grid">
+              {question.options.map((option, index) => {
+                const isSelected = selectedAnswer === index;
+                const isCorrect = answerResult && index === answerResult.correct_answer;
+                const isWrong = answerResult && isSelected && !answerResult.is_correct;
+
+                let className = 'option-button';
+                if (hasAnswered) {
+                  if (isCorrect) className += ' correct';
+                  else if (isWrong) className += ' wrong';
+                  else className += ' disabled';
+                } else if (isSelected) {
+                  className += ' selected';
+                }
+
+                return (
+                  <button
+                    key={index}
+                    className={className}
+                    onClick={() => handleAnswerClick(index)}
+                    disabled={hasAnswered}
+                  >
+                    <span className="option-letter">
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    <span className="option-text">{option}</span>
+                    {hasAnswered && isCorrect && <span className="check-mark">✓</span>}
+                    {hasAnswered && isWrong && <span className="x-mark">✗</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {answerResult && (
+              <div className={`answer-feedback ${answerResult.is_correct ? 'correct' : 'incorrect'}`}>
+                <div className="feedback-header">
+                  {answerResult.is_correct ? (
+                    <>
+                      <span className="feedback-icon">✓</span>
+                      <span className="feedback-title">¡Correcto!</span>
+                      <span className="feedback-points">+{answerResult.points} puntos</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="feedback-icon">✗</span>
+                      <span className="feedback-title">Incorrecto</span>
+                    </>
+                  )}
+                </div>
+                {answerResult.explanation && (
+                  <p className="feedback-explanation">{answerResult.explanation}</p>
+                )}
+              </div>
+            )}
+
+            <div className="players-status">
+              <div className="status-bar">
+                <div 
+                  className="status-progress" 
+                  style={{ width: `${(playersAnswered / totalPlayers) * 100}%` }}
+                />
+              </div>
+              <p className="status-text">
+                {playersAnswered} de {totalPlayers} jugadores han respondido
+              </p>
+            </div>
+          </div>
         </div>
 
-        {answerResult && (
-          <div className={`answer-feedback ${answerResult.is_correct ? 'correct' : 'incorrect'}`}>
-            <div className="feedback-header">
-              {answerResult.is_correct ? (
-                <>
-                  <span className="feedback-icon">✓</span>
-                  <span className="feedback-title">¡Correcto!</span>
-                  <span className="feedback-points">+{answerResult.points} puntos</span>
-                </>
-              ) : (
-                <>
-                  <span className="feedback-icon">✗</span>
-                  <span className="feedback-title">Incorrecto</span>
-                </>
-              )}
-            </div>
-            {answerResult.explanation && (
-              <p className="feedback-explanation">{answerResult.explanation}</p>
-            )}
-          </div>
-        )}
-
-        <div className="players-status">
-          <div className="status-bar">
-            <div 
-              className="status-progress" 
-              style={{ width: `${(playersAnswered / totalPlayers) * 100}%` }}
-            />
-          </div>
-          <p className="status-text">
-            {playersAnswered} de {totalPlayers} jugadores han respondido
-          </p>
+        <div className="game-sidebar-container">
+          <GameSidebar 
+            socket={socket} 
+            lobby={lobby} 
+            mySocketId={mySocketId}
+          />
         </div>
       </div>
     </div>
