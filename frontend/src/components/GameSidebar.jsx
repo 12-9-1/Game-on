@@ -1,11 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
-import './GameSidebar.css';
+import { useState, useEffect, useRef } from "react";
+import { FiX, FiMenu } from "react-icons/fi";
+import { GiHamburgerMenu } from "react-icons/gi";
+import "./GameSidebar.css";
 
 function GameSidebar({ socket, lobby, mySocketId }) {
   const [players, setPlayers] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [messageInput, setMessageInput] = useState('');
-  const [activeTab, setActiveTab] = useState('ranking'); // 'ranking' or 'chat'
+  const [messageInput, setMessageInput] = useState("");
+  const [activeTab, setActiveTab] = useState("ranking"); // 'ranking' or 'chat'
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Actualizar jugadores cuando cambia el lobby
@@ -29,64 +32,64 @@ function GameSidebar({ socket, lobby, mySocketId }) {
       setMessages((prev) => [...prev, data]);
     };
 
-    socket.on('chat_message', handleChatMessage);
+    socket.on("chat_message", handleChatMessage);
 
     return () => {
-      socket.off('chat_message', handleChatMessage);
+      socket.off("chat_message", handleChatMessage);
     };
   }, [socket]);
 
   // Auto-scroll al final de los mensajes
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!messageInput.trim() || !socket) return;
 
-    const player = lobby?.players?.find(p => p.socket_id === mySocketId);
+    const player = lobby?.players?.find((p) => p.socket_id === mySocketId);
     if (player) {
-      socket.emit('send_chat_message', {
+      socket.emit("send_chat_message", {
         message: messageInput.trim(),
-        player_name: player.name
+        player_name: player.name,
       });
-      setMessageInput('');
+      setMessageInput("");
     }
   };
 
   const getRankIcon = (index) => {
     switch (index) {
       case 0:
-        return '🥇';
+        return "🥇";
       case 1:
-        return '🥈';
+        return "🥈";
       case 2:
-        return '🥉';
+        return "🥉";
       default:
         return `#${index + 1}`;
     }
   };
 
-  return (
-    <div className="game-sidebar">
+  const SidebarContent = () => (
+    <>
       <div className="sidebar-tabs">
         <button
-          className={`tab-button ${activeTab === 'ranking' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ranking')}
+          className={`tab-button ${activeTab === "ranking" ? "active" : ""}`}
+          onClick={() => setActiveTab("ranking")}
         >
           📊 Ranking
         </button>
         <button
-          className={`tab-button ${activeTab === 'chat' ? 'active' : ''}`}
-          onClick={() => setActiveTab('chat')}
+          className={`tab-button ${activeTab === "chat" ? "active" : ""}`}
+          onClick={() => setActiveTab("chat")}
         >
           💬 Chat
         </button>
       </div>
 
       <div className="sidebar-content">
-        {activeTab === 'ranking' ? (
+        {activeTab === "ranking" ? (
           <div className="ranking-section">
             <h3 className="ranking-title">Puntuaciones</h3>
             <div className="players-ranking">
@@ -100,16 +103,16 @@ function GameSidebar({ socket, lobby, mySocketId }) {
                   return (
                     <div
                       key={player.socket_id}
-                      className={`ranking-item ${isMe ? 'my-player' : ''} ${index === 0 ? 'first-place' : ''}`}
+                      className={`ranking-item ${isMe ? "my-player" : ""} ${
+                        index === 0 ? "first-place" : ""
+                      }`}
                     >
-                      <div className="ranking-rank">
-                        {getRankIcon(index)}
-                      </div>
+                      <div className="ranking-rank">{getRankIcon(index)}</div>
                       <div className="ranking-player-info">
                         <div className="ranking-player-name">
                           {player.name}
-                          {player.is_host && ' 👑'}
-                          {isMe && ' (Tú)'}
+                          {player.is_host && " 👑"}
+                          {isMe && " (Tú)"}
                         </div>
                         <div className="ranking-player-score">
                           {player.score?.toLocaleString() || 0} pts
@@ -135,16 +138,16 @@ function GameSidebar({ socket, lobby, mySocketId }) {
                   return (
                     <div
                       key={index}
-                      className={`chat-message ${isMe ? 'my-message' : ''}`}
+                      className={`chat-message ${isMe ? "my-message" : ""}`}
                     >
                       <div className="chat-message-header">
                         <span className="chat-message-author">
-                          {isMe ? 'Tú' : msg.player_name}
+                          {isMe ? "Tú" : msg.player_name}
                         </span>
                         <span className="chat-message-time">
-                          {new Date(msg.timestamp).toLocaleTimeString('es-ES', {
-                            hour: '2-digit',
-                            minute: '2-digit'
+                          {new Date(msg.timestamp).toLocaleTimeString("es-ES", {
+                            hour: "2-digit",
+                            minute: "2-digit",
                           })}
                         </span>
                       </div>
@@ -175,9 +178,42 @@ function GameSidebar({ socket, lobby, mySocketId }) {
           </div>
         )}
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Sidebar Desktop */}
+      <div className="game-sidebar">
+        <SidebarContent />
+      </div>
+
+      {/* Floating Button Mobile */}
+      <button
+        className="floating-button"
+        onClick={() => setIsModalOpen(true)}
+        title="Abrir ranking y chat"
+      >
+        <GiHamburgerMenu className="icon-button" size={24} />
+      </button>
+
+      {/* Modal Fullscreen */}
+      {isModalOpen && (
+        <div className="sidebar-modal-overlay">
+          <div className="sidebar-modal">
+            <button
+              className="modal-close-button"
+              onClick={() => setIsModalOpen(false)}
+              title="Cerrar"
+            >
+              <FiX className="icon-button" size={28} />
+            </button>
+            <SidebarContent />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
 export default GameSidebar;
-
