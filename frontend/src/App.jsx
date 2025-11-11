@@ -1,20 +1,34 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, unstable_HistoryRouter as HistoryRouter } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Home from './pages/Home';
 import Lobby from './pages/Lobby';
 import Game from './pages/Game';
+import Navbar from './components/Navbar';
+import Modal from './components/Modal';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import Profile from './pages/Profile';
 import './App.css';
 
 const SOCKET_URL = 'http://localhost:5000';
 
-function App() {
+const AppContent = () => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [lobbies, setLobbies] = useState([]);
   const [currentLobby, setCurrentLobby] = useState(null);
   const [error, setError] = useState(null);
   const [gameActive, setGameActive] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  const handleOpenLogin = () => setShowLogin(true);
+  const handleCloseLogin = () => setShowLogin(false);
+  const handleOpenRegister = () => setShowRegister(true);
+  const handleCloseRegister = () => setShowRegister(false);
 
   useEffect(() => {
     // Conectar a Socket.IO
@@ -126,62 +140,90 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="app-container">
-        {error && (
-          <div className="error-toast">
-            ⚠️ {error}
-          </div>
-        )}
-        
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              currentLobby ? (
-                <Navigate to="/lobby" replace />
-              ) : (
-                <Home 
-                  socket={socket}
-                  lobbies={lobbies}
-                  onCreateLobby={handleCreateLobby}
-                  onJoinLobby={handleJoinLobby}
-                />
-              )
-            } 
-          />
-          <Route 
-            path="/lobby" 
-            element={
-              currentLobby && !gameActive ? (
-                <Lobby 
-                  lobby={currentLobby} 
-                  socket={socket}
-                />
-              ) : gameActive ? (
-                <Navigate to="/game" replace />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
-          <Route 
-            path="/game" 
-            element={
-              gameActive && currentLobby ? (
-                <Game 
-                  socket={socket}
-                  currentLobby={currentLobby}
-                />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
-        </Routes>
-      </div>
-    </Router>
+    <div className="app-container">
+      <Navbar 
+        onOpenLogin={handleOpenLogin} 
+        onOpenRegister={handleOpenRegister} 
+      />
+      
+      {error && (
+        <div className="error-toast">
+          ⚠️ {error}
+        </div>
+      )}
+
+      <Modal isOpen={showLogin} onClose={handleCloseLogin}>
+        <Login onSuccess={handleCloseLogin} />
+      </Modal>
+
+      <Modal isOpen={showRegister} onClose={handleCloseRegister}>
+        <Register onSuccess={handleCloseRegister} />
+      </Modal>
+      
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            currentLobby ? (
+              <Navigate to="/lobby" replace />
+            ) : (
+              <Home 
+                socket={socket}
+                lobbies={lobbies}
+                onCreateLobby={handleCreateLobby}
+                onJoinLobby={handleJoinLobby}
+              />
+            )
+          } 
+        />
+        <Route 
+          path="/lobby" 
+          element={
+            currentLobby && !gameActive ? (
+              <Lobby 
+                lobby={currentLobby} 
+                socket={socket}
+              />
+            ) : gameActive ? (
+              <Navigate to="/game" replace />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
+        <Route 
+          path="/game" 
+          element={
+            gameActive && currentLobby ? (
+              <Game 
+                socket={socket}
+                currentLobby={currentLobby}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          } 
+        />
+        <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />} />
+      </Routes>
+    </div>
+
   );
+};
+
+function App() {
+  return (
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
+  )
 }
 
 export default App;

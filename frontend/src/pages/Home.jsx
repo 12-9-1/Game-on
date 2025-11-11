@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Home.css';
 
 function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
@@ -9,6 +10,14 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [joinLobbyId, setJoinLobbyId] = useState('');
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const { user } = useAuth();
+
+  // Establecer el nombre del usuario autenticado por defecto
+  useEffect(() => {
+    if (user && user.name) {
+      setPlayerName(user.name);
+    }
+  }, [user]);
 
   const handleCreateLobby = (e) => {
     e.preventDefault();
