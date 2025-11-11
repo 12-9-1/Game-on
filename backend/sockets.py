@@ -361,6 +361,10 @@ def register_socket_events(socketio):
         if lobby_id not in active_questions:
             return
         
+        if lobby_id not in lobbies:
+            return
+        
+        lobby = lobbies[lobby_id]
         question_data = active_questions[lobby_id]
         question = question_data['current_question']
         
