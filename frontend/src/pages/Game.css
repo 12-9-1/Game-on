@@ -204,6 +204,10 @@
   opacity: 0.5;
 }
 
+.option-button.hidden {
+  display: none;
+}
+
 @keyframes correctAnswer {
   0%, 100% {
     transform: scale(1);

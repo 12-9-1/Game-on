@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 import time
 from ai_service import generate_round_questions, generate_single_question_sync
+from powers import PowersManager
 import threading
 
 # Almacenamiento en memoria para lobbies
@@ -22,6 +23,8 @@ question_queue = {}
 generation_threads = {}
 # Temporizadores de preguntas por lobby
 question_timers = {}
+# Gestor de poderes por lobby
+powers_managers = {}
 
 def register_socket_events(socketio):
     """Registra todos los eventos de Socket.IO"""
@@ -359,6 +362,14 @@ def register_socket_events(socketio):
         question_data = active_questions[lobby_id]
         question = question_data['current_question']
         
+        # Generar poderes para esta pregunta
+        if lobby_id not in powers_managers:
+            powers_managers[lobby_id] = PowersManager()
+        
+        powers_manager = powers_managers[lobby_id]
+        powers_manager.reset_for_new_question()
+        powers = powers_manager.generate_question_powers()
+        
         # Preparar pregunta sin la respuesta correcta
         question_to_send = {
             'question': question['question'],
@@ -366,7 +377,8 @@ def register_socket_events(socketio):
             'difficulty': question['difficulty'],
             'category': question['category'],
             'question_number': question_data['question_number'],
-            'time_limit': 30  # 30 segundos para responder
+            'time_limit': 30,  # 30 segundos para responder
+            'powers': powers  # ← AGREGAR PODERES
         }
         
         # Inicializar respuestas para esta pregunta
@@ -376,7 +388,7 @@ def register_socket_events(socketio):
             'correct_answer': question['correct_answer']
         }
         
-        print(f'Enviando pregunta #{question_data["question_number"]} al lobby {lobby_id}')
+        print(f'Enviando pregunta #{question_data["question_number"]} con poderes al lobby {lobby_id}')
         
         # Enviar pregunta a todos los jugadores
         socketio.emit('new_question', question_to_send, room=lobby_id)
@@ -770,3 +782,55 @@ def register_socket_events(socketio):
             'lobby': lobby,
             'message': 'Volviendo al lobby'
         }, room=lobby_id, include_self=True, broadcast=True)
+    
+    @socketio.on('use_power')
+    def handle_use_power(data):
+        """Maneja el uso de un poder por parte del jugador"""
+        sid = request.sid
+        
+        if sid not in user_lobbies:
+            emit('error', {'message': 'No estás en ningún lobby'})
+            return
+        
+        lobby_id = user_lobbies[sid]
+        power_type = data.get('power_type')
+        current_points = data.get('current_points', 0)
+        
+        if lobby_id not in powers_managers:
+            emit('error', {'message': 'No hay poderes disponibles'})
+            return
+        
+        # Obtener el gestor de poderes
+        powers_manager = powers_managers[lobby_id]
+        
+        # Intentar usar el poder
+        success, result = powers_manager.use_power(power_type, current_points)
+        
+        if success:
+            print(f'Poder {power_type} usado exitosamente en lobby {lobby_id}')
+            
+            # Preparar el efecto con información adicional para 50/50
+            effect = result['effect']
+            if power_type == 'fifty_fifty' and lobby_id in active_questions:
+                question = active_questions[lobby_id]
+                effect['correct_index'] = question.get('correct_answer_index', 0)
+            
+            emit('power_used', {
+                'success': True,
+                'power_type': power_type,
+                'new_points': result['new_points'],
+                'cost': result['cost'],
+                'effect': effect
+            })
+            
+            # Notificar a otros jugadores (opcional)
+            emit('player_used_power', {
+                'player_name': next((p['name'] for p in lobbies[lobby_id]['players'] if p['socket_id'] == sid), 'Jugador'),
+                'power_type': power_type,
+                'effect': result['effect']
+            }, room=lobby_id, skip_sid=request.sid)
+        else:
+            print(f'Error al usar poder: {result.get("error", "Desconocido")}')
+            emit('power_error', {
+                'error': result.get('error', 'Error al usar poder')
+            })

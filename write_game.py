@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+game_jsx = """import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PowersPanel from '../components/PowersPanel';
+import { PowersManager } from '../utils/powersManager';
 import './Game.css';
 
 function Game({ socket, currentLobby }) {
   const navigate = useNavigate();
   const [question, setQuestion] = useState(null);
   const [powers, setPowers] = useState([]);
+  const [powersManager, setPowersManager] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [hiddenOptions, setHiddenOptions] = useState([]);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [answerResult, setAnswerResult] = useState(null);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -39,11 +40,14 @@ function Game({ socket, currentLobby }) {
       setTimeLeft(data.time_limit || 30);
       setPlayersAnswered(0);
       setTotalPlayers(currentLobby.players?.length || 0);
-      setHiddenOptions([]);
       setLoading(false);
       
+      // Inicializar poderes
       if (data.powers) {
         setPowers(data.powers);
+        const mgr = new PowersManager(myScore);
+        mgr.initializePowers(data.powers);
+        setPowersManager(mgr);
       }
     });
 
@@ -98,7 +102,6 @@ function Game({ socket, currentLobby }) {
     // Escuchar volver al lobby
     socket.on('returned_to_lobby', (data) => {
       console.log('Volviendo al lobby:', data);
-      // Resetear todos los estados del juego
       setQuestion(null);
       setSelectedAnswer(null);
       setHasAnswered(false);
@@ -107,7 +110,6 @@ function Game({ socket, currentLobby }) {
       setResults([]);
       setWaitingNewRound(false);
       setLoading(false);
-      // Navegar al lobby (la ruta correcta según App.jsx)
       navigate('/');
     });
 
@@ -116,30 +118,13 @@ function Game({ socket, currentLobby }) {
       console.log('Poder usado:', data);
       if (data.success) {
         setMyScore(data.new_points);
-        if (data.effect) {
-          if (data.effect.type === 'fifty_fifty') {
-            // Ocultar 2 opciones incorrectas aleatorias
-            if (question && question.options) {
-              const wrongAnswers = [];
-              for (let i = 0; i < question.options.length; i++) {
-                if (i !== data.effect.correct_index) {
-                  wrongAnswers.push(i);
-                }
-              }
-              // Seleccionar 2 opciones incorrectas aleatorias para ocultar
-              const toHide = wrongAnswers.sort(() => Math.random() - 0.5).slice(0, 2);
-              setHiddenOptions(toHide);
-            }
-          } else if (data.effect.type === 'time_boost') {
-            setTimeLeft(prev => prev + data.effect.added_time);
-          }
+        if (powersManager) {
+          const updated = powersManager.getAllPowers();
+          setPowers(updated);
         }
-        // Actualizar powers para marcar como usado
-        setPowers(prevPowers =>
-          prevPowers.map(p => 
-            p.power_type === data.power_type ? { ...p, is_used: true } : p
-          )
-        );
+        if (data.effect && data.effect.type === 'time_boost') {
+          setTimeLeft(prev => prev + data.effect.added_time);
+        }
       }
     });
 
@@ -159,9 +144,8 @@ function Game({ socket, currentLobby }) {
       socket.off('power_used');
       socket.off('power_error');
     };
-  }, [socket, currentLobby, navigate, question]);
+  }, [socket, currentLobby, navigate, powersManager, myScore]);
 
-  // Temporizador
   // Determinar si el usuario es host
   useEffect(() => {
     if (!socket || !currentLobby) return;
@@ -171,17 +155,19 @@ function Game({ socket, currentLobby }) {
     setIsHost(userIsHost);
   }, [socket, currentLobby]);
 
+  // Temporizador - ARREGLADO
   useEffect(() => {
     if (!question || hasAnswered || roundEnded) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
+        const newTime = prev - 1;
+        if (newTime <= 0) {
           clearInterval(timer);
           handleTimeUp();
           return 0;
         }
-        return prev - 1;
+        return newTime;
       });
     }, 1000);
 
@@ -190,6 +176,7 @@ function Game({ socket, currentLobby }) {
 
   const handleTimeUp = () => {
     if (!hasAnswered && socket) {
+      console.log('Tiempo agotado');
       socket.emit('time_up');
       setHasAnswered(true);
     }
@@ -206,6 +193,13 @@ function Game({ socket, currentLobby }) {
 
   const handlePowerUsed = (powerType) => {
     if (!socket) return;
+    if (powersManager) {
+      const check = powersManager.canUsePower(powerType);
+      if (!check.canUse) {
+        console.log('No puede usar este poder:', check.reason);
+        return;
+      }
+    }
     socket.emit('use_power', {
       power_type: powerType,
       current_points: myScore
@@ -265,7 +259,7 @@ function Game({ socket, currentLobby }) {
       <div className="game-container">
         <div className="waiting-room">
           <h1 className="waiting-title">¡Preparando Nueva Ronda!</h1>
-          
+
           <div className="players-ready-list">
             <h3>Estado de los Jugadores:</h3>
             {lobby?.players?.map((player, index) => (
@@ -299,7 +293,7 @@ function Game({ socket, currentLobby }) {
       <div className="game-container">
         <div className="results-screen">
           <h1 className="results-title">🏆 Resultados Finales</h1>
-          
+
           {results.length > 0 && (
             <div className="winner-card">
               <div className="winner-crown">👑</div>
@@ -310,8 +304,8 @@ function Game({ socket, currentLobby }) {
 
           <div className="results-list">
             {results.map((player, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`result-item ${index === 0 ? 'first-place' : ''}`}
               >
                 <div className="result-rank">#{player.rank}</div>
@@ -353,19 +347,12 @@ function Game({ socket, currentLobby }) {
     <div className="game-container">
       <div className="game-header">
         <div className="question-info">
-          <span className="question-number">
-            Pregunta #{question.question_number}
-          </span>
-          <span 
-            className="difficulty-badge" 
-            style={{ backgroundColor: getDifficultyColor(question.difficulty) }}
-          >
-            {question.difficulty === 'easy' ? 'Fácil' : 
-             question.difficulty === 'medium' ? 'Media' : 'Difícil'}
+          <span className="question-number">Pregunta #{question.question_number}</span>
+          <span className="difficulty-badge" style={{ backgroundColor: getDifficultyColor(question.difficulty) }}>
+            {question.difficulty === 'easy' ? 'Fácil' : question.difficulty === 'medium' ? 'Media' : 'Difícil'}
           </span>
           <span className="category-badge">{question.category}</span>
         </div>
-
         <div className="score-display">
           <div className="my-score">
             <span className="score-label">Tu puntaje:</span>
@@ -376,7 +363,6 @@ function Game({ socket, currentLobby }) {
             <span className="score-value">{winScore.toLocaleString()}</span>
           </div>
         </div>
-
         <div className="timer" style={{ color: getTimerColor() }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <circle cx="12" cy="12" r="10" strokeWidth="2"/>
@@ -388,18 +374,12 @@ function Game({ socket, currentLobby }) {
 
       <div className="question-card">
         <h2 className="question-text">{question.question}</h2>
-
         <div className="options-grid">
           {question.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
             const isCorrect = answerResult && index === answerResult.correct_answer;
             const isWrong = answerResult && isSelected && !answerResult.is_correct;
-            const isHidden = hiddenOptions.includes(index);
-
             let className = 'option-button';
-            if (isHidden) {
-              className += ' hidden';
-            }
             if (hasAnswered) {
               if (isCorrect) className += ' correct';
               else if (isWrong) className += ' wrong';
@@ -407,19 +387,9 @@ function Game({ socket, currentLobby }) {
             } else if (isSelected) {
               className += ' selected';
             }
-
-            if (isHidden) return null;
-
             return (
-              <button
-                key={index}
-                className={className}
-                onClick={() => handleAnswerClick(index)}
-                disabled={hasAnswered}
-              >
-                <span className="option-letter">
-                  {String.fromCharCode(65 + index)}
-                </span>
+              <button key={index} className={className} onClick={() => handleAnswerClick(index)} disabled={hasAnswered}>
+                <span className="option-letter">{String.fromCharCode(65 + index)}</span>
                 <span className="option-text">{option}</span>
                 {hasAnswered && isCorrect && <span className="check-mark">✓</span>}
                 {hasAnswered && isWrong && <span className="x-mark">✗</span>}
@@ -427,7 +397,6 @@ function Game({ socket, currentLobby }) {
             );
           })}
         </div>
-
         {answerResult && (
           <div className={`answer-feedback ${answerResult.is_correct ? 'correct' : 'incorrect'}`}>
             <div className="feedback-header">
@@ -449,24 +418,15 @@ function Game({ socket, currentLobby }) {
             )}
           </div>
         )}
-
-        <PowersPanel 
-          powers={powers}
-          playerPoints={myScore}
-          onPowerUsed={handlePowerUsed}
-          disabled={hasAnswered}
-        />
-
+        
+        {/* PODERES COMO LOGOS ABAJO */}
+        <PowersPanel powers={powers} playerPoints={myScore} onPowerUsed={handlePowerUsed} disabled={hasAnswered} />
+        
         <div className="players-status">
           <div className="status-bar">
-            <div 
-              className="status-progress" 
-              style={{ width: `${(playersAnswered / totalPlayers) * 100}%` }}
-            />
+            <div className="status-progress" style={{ width: `${(playersAnswered / totalPlayers) * 100}%` }} />
           </div>
-          <p className="status-text">
-            {playersAnswered} de {totalPlayers} jugadores han respondido
-          </p>
+          <p className="status-text">{playersAnswered} de {totalPlayers} jugadores han respondido</p>
         </div>
       </div>
     </div>
@@ -474,3 +434,12 @@ function Game({ socket, currentLobby }) {
 }
 
 export default Game;
+"""
+
+with open('frontend/src/pages/Game.jsx', 'w', encoding='utf-8') as f:
+    f.write(game_jsx)
+print('✓ Game.jsx restaurado completamente')
+"""
+
+with open('write_game.py', 'w') as f:
+    f.write(game_jsx)

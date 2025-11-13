@@ -15,10 +15,12 @@ Sistema de lobbies multiplayer con Socket.IO, diseñado con paleta de colores az
 ## 📋 Requisitos
 
 ### Backend (Python)
+
 - Python 3.8+
 - pip
 
 ### Frontend (React)
+
 - Node.js 16+
 - npm o yarn
 
@@ -27,22 +29,26 @@ Sistema de lobbies multiplayer con Socket.IO, diseñado con paleta de colores az
 ### Backend
 
 1. Navega a la carpeta del backend:
+
 ```bash
 cd backend
 ```
 
 2. Instala las dependencias:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 3. Crea un archivo `.env` con las siguientes variables:
+
 ```env
 MONGODB_URI=tu_uri_de_mongodb
 JWT_SECRET=tu_secreto_jwt
 ```
 
 4. Inicia el servidor:
+
 ```bash
 python main.py
 ```
@@ -52,16 +58,19 @@ El servidor estará corriendo en `http://localhost:5000`
 ### Frontend
 
 1. Navega a la carpeta del frontend:
+
 ```bash
 cd frontend
 ```
 
 2. Instala las dependencias:
+
 ```bash
 npm install
 ```
 
 3. Inicia el servidor de desarrollo:
+
 ```bash
 npm run dev
 ```
@@ -81,12 +90,14 @@ El frontend estará corriendo en `http://localhost:5173`
 ### Unirse a un Lobby
 
 **Opción 1: Con código**
+
 1. Haz clic en "🔗 Unirse con Código"
 2. Ingresa tu nombre
 3. Ingresa el código del lobby
 4. Haz clic en "Unirse"
 
 **Opción 2: Desde la lista**
+
 1. Busca el lobby en la lista de "Lobbies Disponibles"
 2. Haz clic en "🚀 Unirse"
 3. Ingresa tu nombre cuando se solicite
@@ -94,10 +105,12 @@ El frontend estará corriendo en `http://localhost:5173`
 ### Dentro del Lobby
 
 **Como Jugador:**
+
 - Haz clic en "⏳ Marcar como Listo" cuando estés preparado
 - Espera a que el host inicie el juego
 
 **Como Host:**
+
 - Espera a que todos los jugadores estén listos
 - Haz clic en "🚀 Iniciar Juego" cuando todos estén preparados
 
