@@ -19,6 +19,7 @@ function Game({ socket, currentLobby }) {
   const [loading, setLoading] = useState(true);
   const [lobby, setLobby] = useState(currentLobby || null);
   const [myScore, setMyScore] = useState(0);
+  const [winScore, setWinScore] = useState(10000);
   const mySocketId = socket?.id || null;
   const timerRef = useRef(null);
 
@@ -70,16 +71,24 @@ function Game({ socket, currentLobby }) {
       setHasAnswered(true);
     };
 
+    const onGameStarted = (payload) => {
+      if (payload && payload.win_score) {
+        setWinScore(payload.win_score);
+      }
+    };
+
     socket.on('new_question', onNewQuestion);
     socket.on('power_used', onPowerUsed);
     socket.on('lobby_updated', onLobbyUpdated);
     socket.on('answer_result', onAnswerResult);
+    socket.on('game_started', onGameStarted);
 
     return () => {
       socket.off('new_question', onNewQuestion);
       socket.off('power_used', onPowerUsed);
       socket.off('lobby_updated', onLobbyUpdated);
       socket.off('answer_result', onAnswerResult);
+      socket.off('game_started', onGameStarted);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, question]);

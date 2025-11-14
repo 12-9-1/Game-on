@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import JoinNameModal from '../components/JoinNameModal';
 import './Home.css';
 
 function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
@@ -10,6 +11,8 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [joinLobbyId, setJoinLobbyId] = useState('');
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [showQuickJoinModal, setShowQuickJoinModal] = useState(false);
+  const [quickJoinLobbyId, setQuickJoinLobbyId] = useState('');
   const { user } = useAuth();
 
   // Establecer el nombre del usuario autenticado por defecto
@@ -47,14 +50,18 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   };
 
   const handleQuickJoin = (lobbyId) => {
-    const name = prompt('Ingresa tu nombre:');
-    if (name) {
-      onJoinLobby({ 
-        lobby_id: lobbyId, 
-        player_name: name,
-        public_id: user?.public_id || null
-      });
-    }
+    setQuickJoinLobbyId(lobbyId);
+    setShowQuickJoinModal(true);
+  };
+
+  const handleQuickJoinSubmit = (name) => {
+    onJoinLobby({ 
+      lobby_id: quickJoinLobbyId, 
+      player_name: name,
+      public_id: user?.public_id || null
+    });
+    setShowQuickJoinModal(false);
+    setQuickJoinLobbyId('');
   };
 
   return (
@@ -202,6 +209,13 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
           </div>
         )}
       </div>
+
+      <JoinNameModal 
+        isOpen={showQuickJoinModal}
+        onClose={() => setShowQuickJoinModal(false)}
+        onSubmit={handleQuickJoinSubmit}
+        lobbyId={quickJoinLobbyId}
+      />
     </div>
   );
 }

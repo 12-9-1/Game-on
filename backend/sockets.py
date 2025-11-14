@@ -89,11 +89,19 @@ def register_socket_events(socketio):
     @socketio.on('create_lobby')
     def handle_create_lobby(data):
         sid = request.sid
-        lobby_id = str(uuid.uuid4())[:8]  # ID corto de 8 caracteres
-        
         player_name = data.get('player_name', 'Jugador')
         public_id = data.get('public_id', None)  # ID del usuario autenticado
         max_players = data.get('max_players', 4)
+        
+        # Verificar si el usuario autenticado ya está en otro lobby
+        if public_id:
+            for lobby_id, lobby in lobbies.items():
+                for player in lobby['players']:
+                    if player.get('public_id') == public_id:
+                        emit('error', {'message': 'Ya estás en otro lobby. Sal de él primero.'})
+                        return
+        
+        lobby_id = str(uuid.uuid4())[:8]  # ID corto de 8 caracteres
         
         # Crear nuevo lobby
         lobbies[lobby_id] = {
@@ -135,6 +143,13 @@ def register_socket_events(socketio):
             return
         
         lobby = lobbies[lobby_id]
+        
+        # Verificar si el usuario autenticado ya está en este lobby
+        if public_id:
+            for player in lobby['players']:
+                if player.get('public_id') == public_id:
+                    emit('error', {'message': 'Ya estás en este lobby con otra conexión'})
+                    return
         
         # Verificar si el lobby está lleno
         if len(lobby['players']) >= lobby['max_players']:
