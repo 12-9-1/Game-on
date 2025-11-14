@@ -16,7 +16,6 @@
   overflow: hidden;
   padding: 2rem;
   z-index: 9999;
-  pointer-events: none;
 }
 
 .splash-screen-content {
