@@ -350,6 +350,11 @@ def register_socket_events(socketio):
             'message': '¡Primero en llegar a 10,000 puntos gana!'
         }, room=lobby_id)
         
+        # Emitir actualización del lobby con puntuaciones iniciales
+        emit('lobby_updated', {
+            'lobby': lobby
+        }, room=lobby_id)
+        
         # Enviar la primera pregunta después de 2 segundos
         socketio.sleep(2)
         send_next_question(lobby_id, socketio)
@@ -359,6 +364,10 @@ def register_socket_events(socketio):
         if lobby_id not in active_questions:
             return
         
+        if lobby_id not in lobbies:
+            return
+        
+        lobby = lobbies[lobby_id]
         question_data = active_questions[lobby_id]
         question = question_data['current_question']
         
@@ -392,6 +401,11 @@ def register_socket_events(socketio):
         
         # Enviar pregunta a todos los jugadores
         socketio.emit('new_question', question_to_send, room=lobby_id)
+        
+        # Emitir actualización del lobby con puntuaciones
+        socketio.emit('lobby_updated', {
+            'lobby': lobby
+        }, room=lobby_id)
         
         # Cancelar temporizador anterior si existe
         if lobby_id in question_timers and question_timers[lobby_id]:
@@ -481,6 +495,11 @@ def register_socket_events(socketio):
             'winner': results[0] if results else None
         }, room=lobby_id)
         
+        # Emitir actualización del lobby con puntuaciones finales
+        socketio.emit('lobby_updated', {
+            'lobby': lobby
+        }, room=lobby_id)
+        
         # Limpiar datos de la ronda actual
         if lobby_id in active_questions:
             del active_questions[lobby_id]
@@ -565,6 +584,11 @@ def register_socket_events(socketio):
             'total_players': len(lobby['players'])
         }, room=lobby_id)
         
+        # Emitir actualización del lobby con puntuaciones actualizadas
+        emit('lobby_updated', {
+            'lobby': lobby
+        }, room=lobby_id)
+        
         # Verificar si alguien ganó (llegó a 10,000 puntos)
         if player_score >= lobby.get('win_score', 10000):
             print(f'¡{player_name} ganó con {player_score} puntos!')
@@ -605,7 +629,7 @@ def register_socket_events(socketio):
     
     @socketio.on('time_up')
     def handle_time_up():
-        """Maneja cuando se acaba el tiempo para una pregunta"""
+        """Maneja cuando se acaba el tiempo para una pregunta (solo marca como no respondido)"""
         sid = request.sid
         
         if sid not in user_lobbies:
@@ -617,6 +641,7 @@ def register_socket_events(socketio):
             return
         
         # Si el jugador no respondió, registrar como respuesta incorrecta
+        # El temporizador automático se encargará de avanzar cuando todos respondan o se acabe el tiempo
         if sid not in player_answers[lobby_id]['answers']:
             player_answers[lobby_id]['answers'][sid] = {
                 'answer_index': -1,
@@ -625,11 +650,7 @@ def register_socket_events(socketio):
                 'response_time': 30
             }
         
-        # Si todos respondieron o se acabó el tiempo para todos, continuar
-        if len(player_answers[lobby_id]['answers']) >= len(lobbies[lobby_id]['players']):
-            socketio.sleep(2)
-            active_questions[lobby_id]['current_question_index'] += 1
-            send_next_question(lobby_id, socketio)
+        # No necesitamos avanzar manualmente aquí, el temporizador automático lo hace
     
     @socketio.on('request_new_round')
     def handle_request_new_round():
@@ -731,6 +752,11 @@ def register_socket_events(socketio):
                 'message': '¡Nueva ronda comenzando!'
             }, room=lobby_id)
             
+            # Emitir actualización del lobby con puntuaciones reseteadas
+            emit('lobby_updated', {
+                'lobby': lobby
+            }, room=lobby_id)
+            
             # Enviar la primera pregunta después de 2 segundos
             socketio.sleep(2)
             send_next_question(lobby_id, socketio)
@@ -782,39 +808,47 @@ def register_socket_events(socketio):
             'lobby': lobby,
             'message': 'Volviendo al lobby'
         }, room=lobby_id, include_self=True, broadcast=True)
-    
+
     @socketio.on('use_power')
     def handle_use_power(data):
         """Maneja el uso de un poder por parte del jugador"""
         sid = request.sid
-        
+
         if sid not in user_lobbies:
             emit('error', {'message': 'No estás en ningún lobby'})
             return
-        
+
         lobby_id = user_lobbies[sid]
         power_type = data.get('power_type')
         current_points = data.get('current_points', 0)
-        
+
         if lobby_id not in powers_managers:
             emit('error', {'message': 'No hay poderes disponibles'})
             return
-        
+
         # Obtener el gestor de poderes
         powers_manager = powers_managers[lobby_id]
-        
+
         # Intentar usar el poder
         success, result = powers_manager.use_power(power_type, current_points)
-        
+
         if success:
             print(f'Poder {power_type} usado exitosamente en lobby {lobby_id}')
-            
+
             # Preparar el efecto con información adicional para 50/50
             effect = result['effect']
             if power_type == 'fifty_fifty' and lobby_id in active_questions:
-                question = active_questions[lobby_id]
-                effect['correct_index'] = question.get('correct_answer_index', 0)
-            
+                q = active_questions[lobby_id]
+                # active_questions puede tener distintas estructuras según la función que lo inicializó
+                question = None
+                if isinstance(q, dict):
+                    question = q.get('current_question') or q.get('question') or q.get('questions')
+                    if isinstance(question, list) and len(question) > 0:
+                        question = question[0]
+                if question:
+                    # Preferir 'correct_answer_index' si existe, si no usar 'correct_answer'
+                    effect['correct_index'] = question.get('correct_answer_index', question.get('correct_answer', 0))
+
             emit('power_used', {
                 'success': True,
                 'power_type': power_type,
@@ -822,7 +856,7 @@ def register_socket_events(socketio):
                 'cost': result['cost'],
                 'effect': effect
             })
-            
+
             # Notificar a otros jugadores (opcional)
             emit('player_used_power', {
                 'player_name': next((p['name'] for p in lobbies[lobby_id]['players'] if p['socket_id'] == sid), 'Jugador'),
@@ -834,3 +868,56 @@ def register_socket_events(socketio):
             emit('power_error', {
                 'error': result.get('error', 'Error al usar poder')
             })
+
+    @socketio.on('send_chat_message')
+    def handle_send_chat_message(data):
+        """Maneja el envío de mensajes de chat"""
+        sid = request.sid
+
+        if sid not in user_lobbies:
+            emit('error', {'message': 'No estás en ningún lobby'})
+            return
+
+        lobby_id = user_lobbies[sid]
+        lobby = lobbies[lobby_id]
+
+        # Encontrar el jugador que envió el mensaje
+        player = next((p for p in lobby['players'] if p['socket_id'] == sid), None)
+        if not player:
+            emit('error', {'message': 'Jugador no encontrado'})
+            return
+
+        message = data.get('message', '').strip()
+        if not message:
+            return
+
+        # Crear mensaje de chat
+        chat_message = {
+            'socket_id': sid,
+            'player_name': player['name'],
+            'message': message,
+            'timestamp': datetime.now().isoformat()
+        }
+
+        # Enviar mensaje a todos en el lobby
+        emit('chat_message', chat_message, room=lobby_id)
+
+    @socketio.on('get_lobby_update')
+    def handle_get_lobby_update():
+        """Envía la actualización del lobby con puntuaciones"""
+        sid = request.sid
+
+        if sid not in user_lobbies:
+            return
+
+        lobby_id = user_lobbies[sid]
+        if lobby_id not in lobbies:
+            return
+
+        lobby = lobbies[lobby_id]
+
+        # Enviar actualización del lobby
+        emit('lobby_updated', {
+            'lobby': lobby
+        })
+>>>>>>> 20f06b9fc969a35405a0f48caa5c7be88b5b57c1

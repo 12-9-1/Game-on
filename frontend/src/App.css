@@ -1,7 +1,296 @@
-.app-container {
-  width: 100%;
+/* 🌙 Tema Oscuro - Azul Petróleo con Dorado (Por defecto) */
+:root {
+  /* Colores base - Azul Petróleo */
+  --teal-dark: #0a3d3d;
+  --teal-medium: #0d5252;
+  --teal-light: #126666;
+  --teal-lighter: #1a7a7a;
+  
+  /* Colores de fondo - Azul Petróleo */
+  --bg-primary: #051f1f;
+  --bg-secondary: #0a3d3d;
+  --bg-tertiary: #0d5252;
+  --bg-hover: #126666;
+  
+  /* Colores de texto */
+  --text-primary: #f0f9ff;
+  --text-secondary: #cffafe;
+  --text-muted: #a5f3fc;
+  
+  /* Colores de acento - Dorado */
+  --accent-primary: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-light: #fbbf24;
+  --accent-border: #fcd34d;
+  
+  /* Colores de estado */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  
+  /* Variables de diseño */
+  --border-radius: 8px;
+  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Configuración del tema */
+  color-scheme: dark;
+}
+
+/* ☀️ Tema Claro - Azul y Dorado */
+[data-theme="light"] {
+  --bg-primary: #f0f9ff;
+  --bg-secondary: #e0f2fe;
+  --bg-tertiary: #bae6fd;
+  --bg-hover: #7dd3fc;
+  
+  --text-primary: #0c4a6e;
+  --text-secondary: #0369a1;
+  --text-muted: #0ea5e9;
+  
+  --teal-dark: #0e7490;
+  --teal-medium: #0ea5e9;
+  --teal-light: #38bdf8;
+  --teal-lighter: #7dd3fc;
+  
+  --accent-primary: #d97706;
+  --accent-hover: #b45309;
+  --accent-light: #fbbf24;
+  --accent-border: #f59e0b;
+  
+  color-scheme: light;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Navbar styles */
+.navbar {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 1rem 2rem;
+  box-shadow: var(--box-shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 2px solid var(--accent-border);
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: var(--text-light);
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-profile {
+  background-color: var(--teal-light);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-border);
+}
+
+.btn-profile:hover {
+  background-color: var(--teal-lighter);
+  color: var(--accent-light);
+}
+
+.btn-logout {
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  font-weight: 600;
+}
+
+.btn-logout:hover {
+  background-color: var(--accent-hover);
+  color: white;
+}
+
+/* Profile page styles */
+.profile-container {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 2.5rem;
+  max-width: 800px;
+  margin: 2rem auto;
+  border: 1px solid var(--teal-light);
+  transition: all 0.3s ease;
+}
+
+.profile-container:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.profile-container h1 {
+  color: var(--accent-light);
+  margin-bottom: 2rem;
+  text-align: center;
+  font-size: 2.2rem;
   position: relative;
+  padding-bottom: 1rem;
+}
+
+.profile-container h1::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  border-radius: 3px;
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-medium), var(--accent-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  flex-shrink: 0;
+  color: var(--text-primary);
+  border: 3px solid var(--accent-border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+}
+
+.profile-details {
+  font-size: 1.1rem;
+  line-height: 1.8;
+}
+
+.profile-details p {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius);
+  border-left: 3px solid var(--accent-primary);
+  transition: all 0.3s ease;
+}
+
+.profile-details p:hover {
+  transform: translateX(5px);
+  background-color: var(--bg-hover);
+}
+
+.profile-details strong {
+  color: var(--accent-light);
+  margin-right: 0.5rem;
+}
+
+/* Toggle Theme Button */
+.theme-toggle {
+  background: none;
+  border: none;
+  color: var(--accent-light);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  margin-left: 1rem;
+}
+
+.theme-toggle:hover {
+  background-color: var(--bg-hover);
+  transform: rotate(30deg);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .profile-info {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .main-content {
+    padding: 1rem;
+  }
+  
+  .navbar {
+    padding: 1rem;
+  }
 }
 
 .loading-screen {
