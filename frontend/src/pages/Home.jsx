@@ -22,7 +22,11 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const handleCreateLobby = (e) => {
     e.preventDefault();
     if (playerName.trim()) {
-      onCreateLobby({ player_name: playerName, max_players: maxPlayers });
+      onCreateLobby({ 
+        player_name: playerName, 
+        max_players: maxPlayers,
+        public_id: user?.public_id || null
+      });
       setShowCreateForm(false);
       setPlayerName('');
     }
@@ -31,7 +35,11 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const handleJoinLobby = (e) => {
     e.preventDefault();
     if (playerName.trim() && joinLobbyId.trim()) {
-      onJoinLobby({ lobby_id: joinLobbyId, player_name: playerName });
+      onJoinLobby({ 
+        lobby_id: joinLobbyId, 
+        player_name: playerName,
+        public_id: user?.public_id || null
+      });
       setShowJoinForm(false);
       setPlayerName('');
       setJoinLobbyId('');
@@ -41,7 +49,11 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const handleQuickJoin = (lobbyId) => {
     const name = prompt('Ingresa tu nombre:');
     if (name) {
-      onJoinLobby({ lobby_id: lobbyId, player_name: name });
+      onJoinLobby({ 
+        lobby_id: lobbyId, 
+        player_name: name,
+        public_id: user?.public_id || null
+      });
     }
   };
 

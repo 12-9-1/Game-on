@@ -41,7 +41,7 @@ register_socket_events(socketio)
 
 # Import and initialize auth routes
 def register_auth_routes():
-    from auth import register, login, init_auth
+    from auth import register, login, init_auth, obtener_usuarios
     
     # Initialize auth with app and db
     init_auth(app, db)
@@ -49,6 +49,7 @@ def register_auth_routes():
     # Register auth routes
     app.add_url_rule('/register', 'register', register, methods=['POST'])
     app.add_url_rule('/login', 'login', login, methods=['POST'])
+    app.add_url_rule('/obtenerUsuarios', 'obtener_usuarios', obtener_usuarios, methods=['GET'])
     
     # Test protected route
     @app.route('/protected', methods=['GET'])

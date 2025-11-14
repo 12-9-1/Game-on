@@ -92,6 +92,7 @@ def register_socket_events(socketio):
         lobby_id = str(uuid.uuid4())[:8]  # ID corto de 8 caracteres
         
         player_name = data.get('player_name', 'Jugador')
+        public_id = data.get('public_id', None)  # ID del usuario autenticado
         max_players = data.get('max_players', 4)
         
         # Crear nuevo lobby
@@ -101,6 +102,7 @@ def register_socket_events(socketio):
             'players': [{
                 'socket_id': sid,
                 'name': player_name,
+                'public_id': public_id,
                 'is_host': True,
                 'ready': False
             }],
@@ -125,6 +127,7 @@ def register_socket_events(socketio):
         sid = request.sid
         lobby_id = data.get('lobby_id')
         player_name = data.get('player_name', 'Jugador')
+        public_id = data.get('public_id', None)  # ID del usuario autenticado
         
         # Verificar si el lobby existe
         if lobby_id not in lobbies:
@@ -147,6 +150,7 @@ def register_socket_events(socketio):
         player = {
             'socket_id': sid,
             'name': player_name,
+            'public_id': public_id,
             'is_host': False,
             'ready': False
         }
@@ -488,6 +492,14 @@ def register_socket_events(socketio):
         ]
         
         print(f'Ronda terminada en lobby {lobby_id}')
+        
+        # Registrar victoria del ganador si está autenticado
+        if results and sorted_players:
+            winner = sorted_players[0]
+            if winner.get('public_id'):  # Solo si el usuario está autenticado
+                from auth import incrementar_partidas_ganadas
+                incrementar_partidas_ganadas(winner['public_id'])
+                print(f"Victoria registrada para usuario: {winner['name']}")
         
         # Enviar resultados de la ronda
         socketio.emit('round_ended', {

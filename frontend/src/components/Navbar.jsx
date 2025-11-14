@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState } from 'react';
-import { FaSun, FaMoon, FaUser, FaSignOutAlt } from 'react-icons/fa';
+import { FaSun, FaMoon, FaUser, FaSignOutAlt, FaTrophy } from 'react-icons/fa';
 import styled from 'styled-components';
 
 const Navbar = ({ onOpenLogin, onOpenRegister }) => {
@@ -39,6 +39,12 @@ const Navbar = ({ onOpenLogin, onOpenRegister }) => {
         >
           {theme === 'light' ? <FaMoon /> : <FaSun />}
         </ThemeToggle>
+        <RankingButton 
+          onClick={() => navigate('/ranking')} 
+          title="Ver ranking global"
+        >
+          <FaTrophy /> Ranking
+        </RankingButton>
         {isAuthenticated ? (
           <>
             <ProfileButton 
@@ -128,6 +134,17 @@ const Button = styled.button`
   
   &:active {
     transform: translateY(0);
+  }
+`;
+
+const RankingButton = styled(Button)`
+  background-color: transparent;
+  color: var(--accent-light);
+  border: 1px solid var(--accent-primary);
+  
+  &:hover {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
   }
 `;
 
