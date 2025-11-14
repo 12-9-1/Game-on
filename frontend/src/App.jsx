@@ -6,6 +6,7 @@ import Lobby from './pages/Lobby';
 import Game from './pages/Game';
 import Navbar from './components/Navbar';
 import Modal from './components/Modal';
+import SplashScreen from './components/SplashScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -23,6 +24,7 @@ const AppContent = () => {
   const [gameActive, setGameActive] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const { isAuthenticated } = useAuth();
 
   const handleOpenLogin = () => setShowLogin(true);
@@ -126,6 +128,14 @@ const AppContent = () => {
       socket.emit('join_lobby', data);
     }
   };
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
+  }
 
   if (!connected) {
     return (
