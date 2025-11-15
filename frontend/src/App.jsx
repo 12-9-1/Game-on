@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, unstable_HistoryRouter as HistoryRouter } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Home from './pages/Home';
 import Lobby from './pages/Lobby';
 import Game from './pages/Game';
 import Navbar from './components/Navbar';
 import Modal from './components/Modal';
+import SplashScreen from './components/SplashScreen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
@@ -23,6 +24,8 @@ const AppContent = () => {
   const [gameActive, setGameActive] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { isAuthenticated } = useAuth();
 
   const handleOpenLogin = () => setShowLogin(true);
@@ -30,8 +33,19 @@ const AppContent = () => {
   const handleOpenRegister = () => setShowRegister(true);
   const handleCloseRegister = () => setShowRegister(false);
 
+  // Manejar cuando termina el splash
+  const handleSplashComplete = () => {
+    console.log("Splash screen completado");
+    setShowSplash(false);
+    setIsInitialized(true);
+  };
+
   useEffect(() => {
     // Conectar a Socket.IO con configuración mejorada
+
+    console.log("Iniciando conexión Socket.IO...");
+    
+    // Conectar a Socket.IO
     const newSocket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -112,9 +126,10 @@ const AppContent = () => {
     });
 
     return () => {
+      console.log("Cerrando conexión Socket.IO...");
       newSocket.close();
     };
-  }, []);
+  }, []); // Array vacío - solo se ejecuta una vez
 
   // Actualizar lista de lobbies periódicamente
   useEffect(() => {
@@ -139,6 +154,24 @@ const AppContent = () => {
     }
   };
 
+  // Mostrar splash screen primero
+  if (showSplash) {
+    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
+  }
+
+  // Esperar inicialización después del splash
+  if (!isInitialized) {
+    return (
+      <div className="app-container">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <h2>Inicializando aplicación...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar loading mientras se conecta
   if (!connected) {
     return (
       <div className="app-container">
@@ -216,10 +249,12 @@ const AppContent = () => {
             )
           } 
         />
-        <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />} />
+        <Route 
+          path="/profile" 
+          element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />} 
+        />
       </Routes>
     </div>
-
   );
 };
 
@@ -235,7 +270,7 @@ function App() {
         <AppContent />
       </AuthProvider>
     </Router>
-  )
+  );
 }
 
 export default App;
