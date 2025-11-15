@@ -56,7 +56,7 @@ def register_socket_events(socketio):
                 
                 # Remover jugador
                 lobby['players'] = [p for p in lobby['players'] if p['socket_id'] != sid]
-                
+
                 # Si el lobby está vacío, eliminarlo
                 if len(lobby['players']) == 0:
                     print(f'Eliminando lobby {lobby_id} - vacío')
@@ -66,23 +66,28 @@ def register_socket_events(socketio):
                         'message': 'El lobby está vacío'
                     }, room=lobby_id)
                 else:
-                    # Si el host se desconectó, transferir el rol al siguiente jugador
-                    if was_host and len(lobby['players']) > 0:
-                        new_host = lobby['players'][0]
-                        new_host['is_host'] = True
-                        new_host['ready'] = False  # El nuevo host no necesita estar listo
-                        lobby['host'] = new_host['socket_id']
-                        print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
-                    
-                    # Actualizar el conteo de jugadores
-                    lobby['player_count'] = len(lobby['players'])
-                    
-                    # Notificar a los demás jugadores con la estructura completa del lobby
-                    print(f'Jugador {player_name} salió del lobby {lobby_id}')
-                    emit('player_left', {
-                        'message': f'{player_name} ha salido del lobby',
-                        'lobby': lobby
-                    }, room=lobby_id)
+                    # Si el juego está en curso y solo queda un jugador, ese jugador gana
+                    if lobby.get('status') == 'playing' and len(lobby['players']) == 1:
+                        print(f"Solo queda un jugador en lobby {lobby_id} tras desconexión, finalizando partida")
+                        end_game(lobby_id, socketio)
+                    else:
+                        # Si el host se desconectó, transferir el rol al siguiente jugador
+                        if was_host and len(lobby['players']) > 0:
+                            new_host = lobby['players'][0]
+                            new_host['is_host'] = True
+                            new_host['ready'] = False  # El nuevo host no necesita estar listo
+                            lobby['host'] = new_host['socket_id']
+                            print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
+                        
+                        # Actualizar el conteo de jugadores
+                        lobby['player_count'] = len(lobby['players'])
+                        
+                        # Notificar a los demás jugadores con la estructura completa del lobby
+                        print(f'Jugador {player_name} salió del lobby {lobby_id}')
+                        emit('player_left', {
+                            'message': f'{player_name} ha salido del lobby',
+                            'lobby': lobby
+                        }, room=lobby_id)
                 
             del user_lobbies[sid]
     
@@ -218,20 +223,25 @@ def register_socket_events(socketio):
             del lobbies[lobby_id]
             print(f'Lobby {lobby_id} eliminado (vacío)')
         else:
-            # Si el host se fue, asignar nuevo host
-            if player and player['is_host']:
-                new_host = lobby['players'][0]
-                new_host['is_host'] = True
-                new_host['ready'] = False  # El nuevo host no necesita estar listo
-                lobby['host'] = new_host['socket_id']
-                print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
-            
-            # Notificar a los demás
-            emit('player_left', {
-                'lobby': lobby,
-                'player_name': player['name'] if player else 'Jugador',
-                'player_count': len(lobby['players'])
-            }, room=lobby_id)
+            # Si el juego está en curso y solo queda un jugador, ese jugador gana
+            if lobby.get('status') == 'playing' and len(lobby['players']) == 1:
+                print(f"Solo queda un jugador en lobby {lobby_id} tras leave_lobby, finalizando partida")
+                end_game(lobby_id, socketio)
+            else:
+                # Si el host se fue, asignar nuevo host
+                if player and player['is_host']:
+                    new_host = lobby['players'][0]
+                    new_host['is_host'] = True
+                    new_host['ready'] = False  # El nuevo host no necesita estar listo
+                    lobby['host'] = new_host['socket_id']
+                    print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
+                
+                # Notificar a los demás
+                emit('player_left', {
+                    'lobby': lobby,
+                    'player_name': player['name'] if player else 'Jugador',
+                    'player_count': len(lobby['players'])
+                }, room=lobby_id)
         
         emit('lobby_left', {'message': 'Saliste del lobby'})
     
