@@ -42,11 +42,25 @@ const AppContent = () => {
   };
 
   useEffect(() => {
+    // Conectar a Socket.IO con configuración mejorada
+
     console.log("Iniciando conexión Socket.IO...");
     
     // Conectar a Socket.IO
     const newSocket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
+      autoConnect: true,
+      forceNew: true,
+      withCredentials: true,
+      extraHeaders: {
+        'Access-Control-Allow-Origin': 'http://localhost:5173',
+        'Access-Control-Allow-Credentials': 'true'
+      }
     });
 
     newSocket.on('connect', () => {

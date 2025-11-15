@@ -32,8 +32,18 @@ CORS(app,
          }
      })
 
-# Initialize Socket.IO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# Initialize Socket.IO with improved configuration
+socketio = SocketIO(app, 
+                   cors_allowed_origins="*", 
+                   async_mode='threading',
+                   logger=True,
+                   engineio_logger=True,
+                   ping_timeout=60,
+                   ping_interval=25,
+                   max_http_buffer_size=1e8,  # 100MB max size for messages
+                   http_compression=True,
+                   allow_upgrades=True,
+                   transports=['websocket', 'polling'])
 
 # Import and register socket events
 from sockets import register_socket_events

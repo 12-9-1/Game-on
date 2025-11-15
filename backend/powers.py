@@ -119,9 +119,6 @@ class PowersManager:
         if not power:
             return False, "Poder no disponible"
         
-        if power.is_used:
-            return False, "Ya has usado este poder en esta pregunta"
-        
         if current_points < power.cost:
             return False, f"No tienes suficientes puntos. Necesitas {power.cost}, tienes {current_points}"
         
@@ -148,10 +145,9 @@ class PowersManager:
         except ValueError:
             return False, {"error": "Poder no válido"}
         
-        # Buscar y marcar poder como usado
+        # Buscar el poder (ya no se marca como usado de forma global para permitir
+        # que múltiples jugadores usen el mismo tipo de poder en la misma pregunta)
         power = next((p for p in self.available_powers if p.power_type == p_type), None)
-        power.is_used = True
-        self.used_powers.append(power)
         
         # Aplicar efecto del poder
         effect_data = self._apply_power_effect(p_type, current_points)
