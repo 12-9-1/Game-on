@@ -155,6 +155,14 @@ const AppContent = () => {
     }
   };
 
+  const handleLeaveGame = () => {
+    if (socket) {
+      socket.emit('leave_lobby');
+    }
+    setGameActive(false);
+    setCurrentLobby(null);
+  };
+
   // Mostrar splash screen primero
   if (showSplash) {
     return <SplashScreen onAnimationComplete={handleSplashComplete} />;
@@ -187,10 +195,7 @@ const AppContent = () => {
 
   return (
     <div className="app-container">
-      <Navbar 
-        onOpenLogin={handleOpenLogin} 
-        onOpenRegister={handleOpenRegister} 
-      />
+      <Navbar onLeaveGame={handleLeaveGame} />
       
       {error && (
         <div className="error-toast">
