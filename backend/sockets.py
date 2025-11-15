@@ -746,44 +746,38 @@ def register_socket_events(socketio):
         if all_ready:
             # Iniciar nueva ronda
             lobby['status'] = 'playing'
-            
+
             # Resetear puntuaciones para nueva ronda
             for player in lobby['players']:
                 player['score'] = 0
-            
-            # Generar nuevas preguntas
-            print(f'Generando nuevas preguntas para el lobby {lobby_id}...')
-            print(f'Preguntas ya usadas en este lobby: {len(used_questions_cache.get(lobby_id, []))}')
-            
-            questions = generate_round_questions(num_questions=5)
-            
-            # Guardar nuevas preguntas en el caché
-            if lobby_id not in used_questions_cache:
-                used_questions_cache[lobby_id] = []
-            
-            for q in questions:
-                if 'question' in q:
-                    used_questions_cache[lobby_id].append(q['question'])
-            
-            # Almacenar preguntas del lobby
+
+            # Reiniciar cola y generador de preguntas
+            question_queue[lobby_id] = []
+            start_question_generator(lobby_id)
+
+            # Generar primera pregunta inmediatamente y preparar estado
+            print(f'Generando primera pregunta para nueva ronda en lobby {lobby_id}...')
+            first_question = generate_single_question_sync()
+            if not first_question:
+                emit('error', {'message': 'Error generando pregunta inicial de la nueva ronda'})
+                return
+
             active_questions[lobby_id] = {
-                'questions': questions,
-                'current_question_index': 0,
-                'total_questions': len(questions)
+                'current_question': first_question,
+                'question_number': 1
             }
-            
+
             # Notificar que la nueva ronda comienza
             emit('new_round_started', {
                 'lobby': lobby,
-                'total_questions': len(questions),
                 'message': '¡Nueva ronda comenzando!'
             }, room=lobby_id)
-            
+
             # Emitir actualización del lobby con puntuaciones reseteadas
             emit('lobby_updated', {
                 'lobby': lobby
             }, room=lobby_id)
-            
+
             # Enviar la primera pregunta después de 2 segundos
             socketio.sleep(2)
             send_next_question(lobby_id, socketio)
