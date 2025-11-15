@@ -14,7 +14,7 @@ import Profile from './pages/Profile';
 import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = `${import.meta.env.VITE_URL_BACKEND}`;
 
 const AppContent = () => {
   const [socket, setSocket] = useState(null);
@@ -58,7 +58,7 @@ const AppContent = () => {
       forceNew: true,
       withCredentials: true,
       extraHeaders: {
-        'Access-Control-Allow-Origin': 'http://localhost:5173',
+        'Access-Control-Allow-Origin': `${import.meta.env.VITE_URL_FRONTEND}`,
         'Access-Control-Allow-Credentials': 'true'
       }
     });
