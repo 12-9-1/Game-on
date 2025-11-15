@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { FaSun, FaMoon, FaUser, FaSignOutAlt } from 'react-icons/fa';
 import styled from 'styled-components';
 
-const Navbar = ({ onOpenLogin, onOpenRegister }) => {
+const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
@@ -28,7 +28,7 @@ const Navbar = ({ onOpenLogin, onOpenRegister }) => {
     <Nav>
       <NavBrand>
         <NavLogo to="/">
-          <Accent>Game</Accent> On
+          <Accent>Nic</Accent>io
         </NavLogo>
       </NavBrand>
       <NavActions>
@@ -39,7 +39,7 @@ const Navbar = ({ onOpenLogin, onOpenRegister }) => {
         >
           {theme === 'light' ? <FaMoon /> : <FaSun />}
         </ThemeToggle>
-        {isAuthenticated ? (
+        {isAuthenticated && (
           <>
             <ProfileButton 
               onClick={() => navigate('/profile')} 
@@ -54,15 +54,6 @@ const Navbar = ({ onOpenLogin, onOpenRegister }) => {
               <FaSignOutAlt /> Salir
             </LogoutButton>
           </>
-        ) : (
-          <>
-            <AuthButton onClick={onOpenLogin}>
-              Iniciar Sesión
-            </AuthButton>
-            <AuthButton primary onClick={onOpenRegister}>
-              Registrarse
-            </AuthButton>
-          </>
         )}
       </NavActions>
     </Nav>
@@ -74,14 +65,12 @@ const Nav = styled.nav`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  box-shadow: var(--box-shadow);
+
+
   position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom: 2px solid var(--accent-border);
+  
 `;
 
 const NavBrand = styled.div`
@@ -154,14 +143,14 @@ const LogoutButton = styled(Button)`
 `;
 
 const AuthButton = styled(Button)`
-  background-color: ${props => props.primary ? 'var(--accent-primary)' : 'transparent'};
-  color: ${props => props.primary ? 'var(--bg-primary)' : 'var(--text-primary)'};
-  border: 1px solid ${props => props.primary ? 'transparent' : 'var(--accent-border)'};
-  font-weight: ${props => props.primary ? '600' : '500'};
+  background-color: ${props => props.$primary ? 'var(--accent-primary)' : 'transparent'};
+  color: ${props => props.$primary ? 'var(--bg-primary)' : 'var(--text-primary)'};
+  border: 1px solid ${props => props.$primary ? 'transparent' : 'var(--accent-border)'};
+  font-weight: ${props => props.$primary ? '600' : '500'};
   
   &:hover {
-    background-color: ${props => props.primary ? 'var(--accent-hover)' : 'var(--bg-hover)'};
-    color: ${props => props.primary ? 'white' : 'var(--accent-light)'};
+    background-color: ${props => props.$primary ? 'var(--accent-hover)' : 'var(--bg-hover)'};
+    color: ${props => props.$primary ? 'white' : 'var(--accent-light)'};
     transform: translateY(-1px);
   }
 `;

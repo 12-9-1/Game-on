@@ -820,7 +820,19 @@ def register_socket_events(socketio):
 
         lobby_id = user_lobbies[sid]
         power_type = data.get('power_type')
-        current_points = data.get('current_points', 0)
+
+        # Usar siempre los puntos reales del jugador en el lobby
+        lobby = lobbies.get(lobby_id)
+        if not lobby:
+            emit('error', {'message': 'Lobby no encontrado'})
+            return
+
+        player = next((p for p in lobby['players'] if p['socket_id'] == sid), None)
+        if not player:
+            emit('error', {'message': 'Jugador no encontrado en el lobby'})
+            return
+
+        current_points = player.get('score', 0)
 
         if lobby_id not in powers_managers:
             emit('error', {'message': 'No hay poderes disponibles'})
@@ -829,7 +841,7 @@ def register_socket_events(socketio):
         # Obtener el gestor de poderes
         powers_manager = powers_managers[lobby_id]
 
-        # Intentar usar el poder
+        # Intentar usar el poder con los puntos reales del jugador
         success, result = powers_manager.use_power(power_type, current_points)
 
         if success:
@@ -849,13 +861,20 @@ def register_socket_events(socketio):
                     # Preferir 'correct_answer_index' si existe, si no usar 'correct_answer'
                     effect['correct_index'] = question.get('correct_answer_index', question.get('correct_answer', 0))
 
-            emit('power_used', {
+            # Actualizar puntuación del jugador en el lobby con los nuevos puntos
+            player['score'] = max(0, result['new_points'])
+
+            # Payload de resultado común
+            response_payload = {
                 'success': True,
                 'power_type': power_type,
-                'new_points': result['new_points'],
+                'new_points': player['score'],
                 'cost': result['cost'],
                 'effect': effect
-            })
+            }
+
+            # Enviar al cliente que usó el poder
+            emit('power_used', response_payload)
 
             # Notificar a otros jugadores (opcional)
             emit('player_used_power', {
@@ -863,6 +882,11 @@ def register_socket_events(socketio):
                 'power_type': power_type,
                 'effect': result['effect']
             }, room=lobby_id, skip_sid=request.sid)
+
+            # Emitir actualización del lobby para reflejar el nuevo puntaje
+            emit('lobby_updated', {
+                'lobby': lobby
+            }, room=lobby_id)
         else:
             print(f'Error al usar poder: {result.get("error", "Desconocido")}')
             emit('power_error', {

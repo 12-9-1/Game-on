@@ -19,6 +19,7 @@ function Game({ socket, currentLobby }) {
   const [loading, setLoading] = useState(true);
   const [lobby, setLobby] = useState(currentLobby || null);
   const [myScore, setMyScore] = useState(0);
+  const [winScore, setWinScore] = useState(1000); // Default win score
   const mySocketId = socket?.id || null;
   const timerRef = useRef(null);
 
@@ -26,7 +27,8 @@ function Game({ socket, currentLobby }) {
     if (!socket) return;
 
     const onNewQuestion = (payload) => {
-      setQuestion(payload.question || null);
+      // The payload itself is the question data, not wrapped in a 'question' property
+      setQuestion(payload || null);
       setHiddenOptions([]);
       setSelectedAnswer(null);
       setHasAnswered(false);
@@ -35,12 +37,20 @@ function Game({ socket, currentLobby }) {
       setTotalPlayers(payload.total_players || 0);
       setPowers(payload.powers || []);
       setLoading(false);
-      setTimeLeft(payload.time_left || 30);
+      setTimeLeft(payload.time_limit || 30);
+      
+      console.log('New question received:', payload); // Debug log
     };
 
     const onPowerUsed = (payload) => {
       if (!payload || !payload.effect) return;
       const eff = payload.effect;
+
+      // Actualizar puntaje si el backend envía new_points tras usar el poder
+      if (typeof payload.new_points === 'number') {
+        setMyScore(payload.new_points);
+      }
+
       if (eff.type === 'fifty_fifty' && typeof eff.correct_index === 'number') {
         // hide all incorrect except one other so only 2 remain (approximate behavior)
         const correct = eff.correct_index;
@@ -55,19 +65,41 @@ function Game({ socket, currentLobby }) {
           hide.splice(keep, 1);
         }
         setHiddenOptions(hide);
-      } else if (eff.type === 'time_extra') {
-        setTimeLeft((t) => Math.max(0, t + (eff.seconds || 5)));
+      } else if (eff.type === 'time_boost') {
+        // El backend envía added_time para el poder de tiempo extra
+        setTimeLeft((t) => Math.max(0, t + (eff.added_time || 10)));
       }
     };
 
     const onLobbyUpdated = (payload) => {
+      console.log('Lobby updated:', payload); // Debug log
       setLobby(payload.lobby || lobby);
-      if (payload.my_score != null) setMyScore(payload.my_score);
+      
+      // Update score if my_score is provided in the payload
+      if (payload.my_score != null) {
+        console.log('Updating score from lobby update:', payload.my_score); // Debug log
+        setMyScore(payload.my_score);
+      } 
+      // If no my_score in payload, try to find the current player in the lobby
+      else if (payload.lobby?.players && mySocketId) {
+        const currentPlayer = payload.lobby.players.find(p => p.socket_id === mySocketId);
+        if (currentPlayer && currentPlayer.score !== undefined) {
+          console.log('Updating score from player data:', currentPlayer.score); // Debug log
+          setMyScore(currentPlayer.score);
+        }
+      }
     };
 
     const onAnswerResult = (payload) => {
+      console.log('Answer result received:', payload); // Debug log
       setAnswerResult(payload || null);
       setHasAnswered(true);
+      
+      // Update the player's score with the new total from the server
+      if (payload && typeof payload.total_score === 'number') {
+        console.log('Updating player score to:', payload.total_score); // Debug log
+        setMyScore(payload.total_score);
+      }
     };
 
     socket.on('new_question', onNewQuestion);
@@ -84,31 +116,49 @@ function Game({ socket, currentLobby }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, question]);
 
-  useEffect(() => {
-    if (!question) return;
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(timerRef.current);
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [question]);
+useEffect(() => {
+  if (!question || !socket) return;
+  
+  // Clear any existing timer
+  clearInterval(timerRef.current);
+  
+  // Create new timer
+  const timerId = setInterval(() => {
+    setTimeLeft((t) => {
+      if (t <= 1) {
+        clearInterval(timerId);
+        socket.emit('time_up');
+        return 0;
+      }
+      return t - 1;
+    });
+  }, 1000);
+  
+  // Store the timer ID
+  timerRef.current = timerId;
+  
+  // Cleanup function
+  return () => {
+    clearInterval(timerId);
+  };
+}, [question, socket]); // Dependencies that trigger effect recreation
 
   const handleAnswerClick = (index) => {
     if (!socket || hasAnswered) return;
     setSelectedAnswer(index);
-    socket.emit('submit_answer', { answer: index });
+    // Send the answer with the key 'answer_index' to match backend expectations
+    socket.emit('submit_answer', { answer_index: index });
+    
+    console.log('Answer submitted:', { answer_index: index }); // Debug log
   };
 
   const handlePowerUsed = (powerType) => {
     if (!socket) return;
-    socket.emit('use_power', { power_type: powerType }, (response) => {
-      if (response && response.success === false) console.warn('Power rejected:', response.reason);
+    console.log('Using power:', powerType, 'with score:', myScore); // Debug log
+    // El resultado se maneja vía evento 'power_used' (onPowerUsed)
+    socket.emit('use_power', { 
+      power_type: powerType,
+      current_points: myScore // Enviamos el puntaje actual para validar el costo
     });
   };
 
@@ -155,10 +205,13 @@ function Game({ socket, currentLobby }) {
           </div>
 
           <div className="question-card">
-            <h2 className="question-text">{question.question}</h2>
+            <h2 className="question-text">{question?.question || 'Cargando pregunta...'}</h2>
 
             <div className="options-grid">
-              {question.options.map((option, index) => {
+              {!question?.options ? (
+                <div className="loading-options">Cargando opciones...</div>
+              ) : (
+                question.options.map((option, index) => {
                 const isSelected = selectedAnswer === index;
                 const isCorrect = answerResult && index === answerResult.correct_answer;
                 const isWrong = answerResult && isSelected && !answerResult.is_correct;
@@ -182,7 +235,7 @@ function Game({ socket, currentLobby }) {
                     {hasAnswered && isWrong && <span className="x-mark">✗</span>}
                   </button>
                 );
-              })}
+              }))}
             </div>
 
             {answerResult && (
