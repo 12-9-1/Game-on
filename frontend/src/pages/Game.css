@@ -8,6 +8,27 @@
   justify-content: center;
 }
 
+.game-layout {
+  width: 100%;
+  max-width: 1400px;
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.game-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.game-sidebar-container {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+}
+
 .loading-game {
   text-align: center;
   color: var(--gold-400);
@@ -31,15 +52,14 @@
 /* Header del juego */
 .game-header {
   width: 100%;
-  max-width: 900px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
   padding: 1rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 215, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .question-info {
@@ -132,12 +152,12 @@
 /* Tarjeta de pregunta */
 .question-card {
   width: 100%;
-  max-width: 900px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid var(--gold-400);
   border-radius: 16px;
   padding: 2.5rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
 }
 
 .question-text {
@@ -202,6 +222,10 @@
 
 .option-button.disabled {
   opacity: 0.5;
+}
+
+.option-button.hidden {
+  display: none;
 }
 
 @keyframes correctAnswer {
@@ -599,9 +623,24 @@
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .game-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .game-sidebar-container {
+    align-self: stretch;
+  }
+}
+
 @media (max-width: 768px) {
   .game-container {
     padding: 1rem;
+  }
+
+  .game-layout {
+    gap: 1rem;
   }
 
   .game-header {
@@ -627,5 +666,9 @@
 
   .winner-card h2 {
     font-size: 1.5rem;
+  }
+
+  .game-sidebar-container {
+    align-self: stretch;
   }
 }

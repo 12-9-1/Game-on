@@ -1,0 +1,444 @@
+.game-sidebar {
+  width: 100%;
+  height: auto;
+  min-height: 650px;
+  max-height: 750px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--teal-light);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+
+.sidebar-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 2px solid var(--teal-light);
+}
+
+.tab-button {
+  flex: 1;
+  padding: 1rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.tab-button.active {
+  color: var(--gold-400);
+  border-bottom-color: var(--gold-400);
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.sidebar-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Ranking Section */
+.ranking-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.ranking-title {
+  color: var(--gold-400);
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.players-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.ranking-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(5px);
+}
+
+.ranking-item.first-place {
+  border-color: var(--gold-400);
+  background: rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.ranking-item.my-player {
+  border-color: var(--teal-light);
+  background: rgba(13, 115, 119, 0.2);
+}
+
+.ranking-rank {
+  font-size: 1.5rem;
+  font-weight: bold;
+  min-width: 50px;
+  text-align: center;
+  color: var(--gold-400);
+}
+
+.ranking-player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ranking-player-name {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.ranking-player-score {
+  color: var(--teal-light);
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.ranking-item.first-place .ranking-player-score {
+  color: var(--gold-400);
+  font-size: 1.2rem;
+}
+
+.ranking-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Chat Section */
+.chat-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+.chat-empty p {
+  margin: 0.5rem 0;
+}
+
+.chat-empty-hint {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.chat-message {
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-message.my-message {
+  background: rgba(13, 115, 119, 0.2);
+  border-color: var(--teal-light);
+  margin-left: auto;
+  max-width: 80%;
+}
+
+.chat-message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
+.chat-message-author {
+  color: var(--gold-400);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.chat-message-time {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.chat-message-text {
+  color: white;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.chat-input-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 2px solid var(--teal-light);
+}
+
+.chat-input {
+  flex: 1;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.chat-input:focus {
+  border-color: var(--teal-light);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.chat-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.chat-send-button {
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(135deg, var(--teal-light), #0d7377);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.chat-send-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 115, 119, 0.4);
+}
+
+.chat-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Scrollbar styling */
+.ranking-section::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ranking-section::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.ranking-section::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--teal-light);
+  border-radius: 4px;
+}
+
+.ranking-section::-webkit-scrollbar-thumb:hover,
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-400);
+}
+
+/* Floating Button - OCULTO POR DEFECTO EN DESKTOP */
+.floating-button {
+  display: none;
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-light), #0d7377);
+  border: 3px solid var(--gold-400);
+  color: white;
+  cursor: pointer;
+  z-index: 999;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(13, 115, 119, 0.5);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.floating-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(13, 115, 119, 0.7);
+}
+
+.floating-button:active {
+  transform: scale(0.95);
+}
+
+/* Iconos visibles en blanco */
+.floating-button svg,
+.modal-close-button svg {
+  color: white;
+}
+
+/* Modal Overlay - OCULTO POR DEFECTO */
+.sidebar-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.sidebar-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #0a4d4e, #0d7377);
+  border: none;
+  display: flex;
+  flex-direction: column;
+  z-index: 1001;
+  animation: slideUp 0.3s ease;
+}
+
+.modal-close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: linear-gradient(135deg, var(--teal-light), #0d7377);
+  border: 3px solid var(--gold-400);
+  color: white;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1002;
+  padding: 0;
+}
+
+.modal-close-button:hover {
+  transform: rotate(90deg);
+  box-shadow: 0 4px 12px rgba(13, 115, 119, 0.5);
+}
+
+.sidebar-modal .sidebar-tabs {
+  margin-top: 3rem;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .game-sidebar {
+    height: 500px;
+    min-height: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Ocultar sidebar desktop */
+  .game-sidebar {
+    display: none;
+  }
+
+  /* Mostrar botón flotante SOLO en móvil */
+  .floating-button {
+    display: flex !important;
+  }
+
+  /* Mostrar modal cuando isModalOpen es true */
+  .sidebar-modal-overlay.active {
+    display: block;
+  }
+
+  .ranking-title {
+    font-size: 1.2rem;
+  }
+
+  .ranking-item {
+    padding: 0.8rem;
+  }
+
+  .ranking-player-name {
+    font-size: 1rem;
+  }
+
+  .ranking-player-score {
+    font-size: 0.9rem;
+  }
+}
