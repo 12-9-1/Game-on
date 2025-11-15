@@ -90,7 +90,6 @@ const RankingGlobal = () => {
       <div className="ranking-container">
         <div className="loading-spinner">
           <div className="spinner"></div>
-          <p>Cargando ranking...</p>
         </div>
       </div>
     );
@@ -108,10 +107,10 @@ const RankingGlobal = () => {
     <div className="ranking-container" ref={containerRef}>
       <div className="ranking-header">
         <h1 className="ranking-title">
-          <FaFire style={{ marginRight: '10px', color: '#FF6B6B' }} />
+          <FaFire style={{ marginRight: '10px', color: '#e9bf65ffff' }} />
           Ranking Global
         </h1>
-        <p className="ranking-subtitle">Top jugadores por partidas ganadas</p>
+        <p className="ranking-subtitle">Top 10 jugadores con mayores partidas ganadas</p>
       </div>
 
       <div className="table-container">
