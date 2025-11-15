@@ -106,12 +106,14 @@ function Game({ socket, currentLobby }) {
     socket.on('power_used', onPowerUsed);
     socket.on('lobby_updated', onLobbyUpdated);
     socket.on('answer_result', onAnswerResult);
+    socket.on('game_started', onGameStarted);
 
     return () => {
       socket.off('new_question', onNewQuestion);
       socket.off('power_used', onPowerUsed);
       socket.off('lobby_updated', onLobbyUpdated);
       socket.off('answer_result', onAnswerResult);
+      socket.off('game_started', onGameStarted);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket, question]);

@@ -53,7 +53,8 @@ def register():
         'name': data['name'],
         'email': data['email'],
         'password': hashed_password,
-        'created_at': datetime.datetime.utcnow()
+        'created_at': datetime.datetime.utcnow(),
+        'games_won': 0
     }
     
     db.users.insert_one(user)
@@ -98,3 +99,40 @@ def login():
             'email': user['email']
         }
     }), 200
+
+def obtener_usuarios():
+    """Obtiene lista de usuarios con sus partidas ganadas ordenadas por ranking"""
+    try:
+        # Obtener todos los usuarios ordenados por games_won descendente
+        usuarios = list(db.users.find(
+            {},
+            {'name': 1, 'games_won': 1, '_id': 0}
+        ).sort('games_won', -1))
+        
+        # Agregar ranking
+        usuarios_con_ranking = [
+            {
+                'rank': idx + 1,
+                'name': user['name'],
+                'games_won': user.get('games_won', 0)
+            }
+            for idx, user in enumerate(usuarios)
+        ]
+        
+        return jsonify({
+            'usuarios': usuarios_con_ranking
+        }), 200
+    except Exception as e:
+        return jsonify({'message': 'Error al obtener usuarios', 'error': str(e)}), 500
+
+def incrementar_partidas_ganadas(public_id):
+    """Incrementa el contador de partidas ganadas de un usuario"""
+    try:
+        db.users.update_one(
+            {'public_id': public_id},
+            {'$inc': {'games_won': 1}}
+        )
+        return True
+    except Exception as e:
+        print(f"Error al incrementar partidas ganadas: {e}")
+        return False

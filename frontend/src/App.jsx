@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Profile from './pages/Profile';
+import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
 const SOCKET_URL = 'http://localhost:5000';
@@ -252,6 +253,10 @@ const AppContent = () => {
         <Route 
           path="/profile" 
           element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />} 
+        />
+        <Route 
+          path="/ranking" 
+          element={<RankingGlobal />} 
         />
       </Routes>
     </div>
