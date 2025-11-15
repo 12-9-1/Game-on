@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import JoinNameModal from '../components/JoinNameModal';
+import { TbBrandAppleArcade } from "react-icons/tb";
 import { SiApplearcade } from "react-icons/si";
+import { TiPlus } from "react-icons/ti";
+import { LuPaperclip } from "react-icons/lu";
+import { MdMeetingRoom } from "react-icons/md";
 import './Home.css';
 
 function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
@@ -16,6 +20,9 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const [quickJoinLobbyId, setQuickJoinLobbyId] = useState('');
   const { user } = useAuth();
 
+  const [createErrors, setCreateErrors] = useState({});
+  const [joinErrors, setJoinErrors] = useState({});
+
   // Establecer el nombre del usuario autenticado por defecto
   useEffect(() => {
     if (user && user.name) {
@@ -23,31 +30,77 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
     }
   }, [user]);
 
+  const validateCreateForm = () => {
+    const errors = {};
+    
+    if (!playerName.trim()) {
+      errors.playerName = 'El nombre es requerido';
+    } else if (playerName.trim().length < 2) {
+      errors.playerName = 'El nombre debe tener al menos 2 caracteres';
+    } else if (playerName.trim().length > 20) {
+      errors.playerName = 'El nombre no puede exceder 20 caracteres';
+    }
+    
+    return errors;
+  };
+
+  const validateJoinForm = () => {
+    const errors = {};
+    
+    if (!playerName.trim()) {
+      errors.playerName = 'El nombre es requerido';
+    } else if (playerName.trim().length < 2) {
+      errors.playerName = 'El nombre debe tener al menos 2 caracteres';
+    } else if (playerName.trim().length > 20) {
+      errors.playerName = 'El nombre no puede exceder 20 caracteres';
+    }
+    
+    if (!joinLobbyId.trim()) {
+      errors.lobbyId = 'El código del lobby es requerido';
+    } else if (joinLobbyId.trim().length < 3) {
+      errors.lobbyId = 'El código debe tener al menos 3 caracteres';
+    }
+    
+    return errors;
+  };
+
   const handleCreateLobby = (e) => {
     e.preventDefault();
-    if (playerName.trim()) {
-      onCreateLobby({ 
-        player_name: playerName, 
-        max_players: maxPlayers,
-        public_id: user?.public_id || null
-      });
-      setShowCreateForm(false);
-      setPlayerName('');
+    const errors = validateCreateForm();
+    
+    if (Object.keys(errors).length > 0) {
+      setCreateErrors(errors);
+      return;
     }
+    
+    setCreateErrors({});
+    onCreateLobby({ 
+      player_name: playerName, 
+      max_players: maxPlayers,
+      public_id: user?.public_id || null
+    });
+    setShowCreateForm(false);
+    setPlayerName('');
   };
 
   const handleJoinLobby = (e) => {
     e.preventDefault();
-    if (playerName.trim() && joinLobbyId.trim()) {
-      onJoinLobby({ 
-        lobby_id: joinLobbyId, 
-        player_name: playerName,
-        public_id: user?.public_id || null
-      });
-      setShowJoinForm(false);
-      setPlayerName('');
-      setJoinLobbyId('');
+    const errors = validateJoinForm();
+    
+    if (Object.keys(errors).length > 0) {
+      setJoinErrors(errors);
+      return;
     }
+    
+    setJoinErrors({});
+    onJoinLobby({ 
+      lobby_id: joinLobbyId, 
+      player_name: playerName,
+      public_id: user?.public_id || null
+    });
+    setShowJoinForm(false);
+    setPlayerName('');
+    setJoinLobbyId('');
   };
 
   const handleQuickJoin = (lobbyId) => {
@@ -68,9 +121,10 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   return (
     <div className="home-container">
       <div className="home-header">
-        
-        
-        <h1> <SiApplearcade size={50}/>Battle Quiz Arena - Lobbies</h1>
+        <h1>
+          <SiApplearcade className="header-icon" />
+          Battle Quiz Arena - Lobbies
+        </h1>
         <p className="subtitle">Únete a una partida o crea la tuya</p>
       </div>
 
@@ -80,18 +134,22 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
           onClick={() => {
             setShowCreateForm(!showCreateForm);
             setShowJoinForm(false);
+            setCreateErrors({});
           }}
         >
-          ➕ Crear Lobby
+          <TiPlus className="btn-icon" />
+          <span>Crear Lobby</span>
         </button>
         <button 
           className="btn-secondary"
           onClick={() => {
             setShowJoinForm(!showJoinForm);
             setShowCreateForm(false);
+            setJoinErrors({});
           }}
         >
-          🔗 Unirse con Código
+          <LuPaperclip className="btn-icon" />
+          <span>Unirse con Código</span>
         </button>
       </div>
 
@@ -104,10 +162,18 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
               <input
                 type="text"
                 value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                onChange={(e) => {
+                  setPlayerName(e.target.value);
+                  if (createErrors.playerName) {
+                    setCreateErrors({ ...createErrors, playerName: '' });
+                  }
+                }}
                 placeholder="Ingresa tu nombre"
-                required
+                className={createErrors.playerName ? 'input-error' : ''}
               />
+              {createErrors.playerName && (
+                <span className="error-message">{createErrors.playerName}</span>
+              )}
             </div>
             <div className="form-group">
               <label>Máximo de Jugadores</label>
@@ -126,7 +192,10 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
               <button 
                 type="button" 
                 className="btn-cancel"
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setCreateErrors({});
+                }}
               >
                 Cancelar
               </button>
@@ -144,27 +213,46 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
               <input
                 type="text"
                 value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                onChange={(e) => {
+                  setPlayerName(e.target.value);
+                  if (joinErrors.playerName) {
+                    setJoinErrors({ ...joinErrors, playerName: '' });
+                  }
+                }}
                 placeholder="Ingresa tu nombre"
-                required
+                className={joinErrors.playerName ? 'input-error' : ''}
               />
+              {joinErrors.playerName && (
+                <span className="error-message">{joinErrors.playerName}</span>
+              )}
             </div>
             <div className="form-group">
               <label>Código del Lobby</label>
               <input
                 type="text"
                 value={joinLobbyId}
-                onChange={(e) => setJoinLobbyId(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setJoinLobbyId(e.target.value.toUpperCase());
+                  if (joinErrors.lobbyId) {
+                    setJoinErrors({ ...joinErrors, lobbyId: '' });
+                  }
+                }}
                 placeholder="Ej: ABC123"
-                required
+                className={joinErrors.lobbyId ? 'input-error' : ''}
               />
+              {joinErrors.lobbyId && (
+                <span className="error-message">{joinErrors.lobbyId}</span>
+              )}
             </div>
             <div className="form-actions">
               <button type="submit" className="btn-primary">Unirse</button>
               <button 
                 type="button" 
                 className="btn-cancel"
-                onClick={() => setShowJoinForm(false)}
+                onClick={() => {
+                  setShowJoinForm(false);
+                  setJoinErrors({});
+                }}
               >
                 Cancelar
               </button>
@@ -177,7 +265,8 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
         <h2>Lobbies Disponibles</h2>
         {lobbies.length === 0 ? (
           <div className="empty-state">
-            <p>🎯 No hay lobbies disponibles</p>
+            <MdMeetingRoom size={50}/>
+            <p> No hay lobbies disponibles</p>
             <p className="empty-subtitle">¡Crea uno nuevo para empezar!</p>
           </div>
         ) : (
