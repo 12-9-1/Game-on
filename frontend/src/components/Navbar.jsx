@@ -27,9 +27,13 @@ const Navbar = ({ onOpenLogin, onOpenRegister }) => {
   return (
     <Nav>
       <NavBrand>
-        <NavLogo to="/">
-          <Accent>Game</Accent> On
-        </NavLogo>
+         <StyledNavLogo href="/" aria-label="Battle Quiz Arena">
+      <LogoContainer>
+        <BattleText>BATTLE</BattleText>
+        <QuizText>QUIZ</QuizText>
+        <ArenaText>ARENA</ArenaText>
+      </LogoContainer>
+    </StyledNavLogo>
       </NavBrand>
       <NavActions>
         <ThemeToggle 
@@ -95,18 +99,80 @@ const NavBrand = styled.div`
   font-weight: bold;
 `;
 
-const NavLogo = styled(Link)`
-  color: var(--text-primary);
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+
+const LogoContainer = styled.div`
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  font-family: 'Bebas Neue', 'Arial Black', Arial, sans-serif;
+  font-weight: 900;
+  line-height: 1;
+  padding-right: 4rem;
+  gap: 0.1rem;
+  overflow: visible;
 `;
 
-const Accent = styled.span`
-  color: var(--accent-light);
+const BattleText = styled.span`
+  font-size: 1.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+ background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 40px rgba(251, 191, 36, 0.5);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  margin: 0;
+`;
+
+const QuizText = styled.span`
+  font-size: 1.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+ background: linear-gradient(135deg, #a5f3fc 0%, #cffafe 50%, #f0f9ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  margin: 0;
+`;
+
+const ArenaText = styled.span`
+  position: absolute;
+  top: 105%;
+  right: 3rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+   text-shadow: 0 10px 30px rgba(251, 191, 36, 0.6);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+  transform: translateY(-50%) rotate(-18deg);
+  transform-origin: left center;
+  white-space: nowrap;
+  margin: 0;
+  padding: 0;
+  font-weight: 800;
+  z-index: 10;
+  
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+    right: -2rem;
+  }
+`;
+
+const StyledNavLogo = styled.a`
+  color: white;
+  text-decoration: none;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  cursor: pointer;
 `;
 
 const NavActions = styled.div`

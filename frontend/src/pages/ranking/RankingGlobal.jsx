@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import styled from 'styled-components';
 import gsap from 'gsap';
 import { FaMedal, FaTrophy, FaFire } from 'react-icons/fa';
+import './RankingGlobal.css';
 
 const RankingGlobal = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -21,7 +21,8 @@ const RankingGlobal = () => {
       const data = await response.json();
       
       if (data.usuarios) {
-        setUsuarios(data.usuarios);
+        const topTen = data.usuarios.slice(0, 10);
+        setUsuarios(topTen);
         // Animar filas cuando se cargan
         setTimeout(() => animateRows(), 100);
       }
@@ -57,7 +58,7 @@ const RankingGlobal = () => {
 
   const handleRowHover = (index) => {
     gsap.to(rowsRef.current[index], {
-      scale: 1.02,
+      y: -4,
       duration: 0.3,
       ease: 'power2.out'
     });
@@ -65,7 +66,7 @@ const RankingGlobal = () => {
 
   const handleRowHoverEnd = (index) => {
     gsap.to(rowsRef.current[index], {
-      scale: 1,
+      y: 0,
       duration: 0.3,
       ease: 'power2.out'
     });
@@ -86,35 +87,35 @@ const RankingGlobal = () => {
 
   if (loading) {
     return (
-      <RankingContainer>
-        <LoadingSpinner>
+      <div className="ranking-container">
+        <div className="loading-spinner">
           <div className="spinner"></div>
           <p>Cargando ranking...</p>
-        </LoadingSpinner>
-      </RankingContainer>
+        </div>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <RankingContainer>
-        <ErrorMessage>{error}</ErrorMessage>
-      </RankingContainer>
+      <div className="ranking-container">
+        <div className="error-message">{error}</div>
+      </div>
     );
   }
 
   return (
-    <RankingContainer ref={containerRef}>
-      <RankingHeader>
-        <Title>
+    <div className="ranking-container" ref={containerRef}>
+      <div className="ranking-header">
+        <h1 className="ranking-title">
           <FaFire style={{ marginRight: '10px', color: '#FF6B6B' }} />
           Ranking Global
-        </Title>
-        <Subtitle>Top jugadores por partidas ganadas</Subtitle>
-      </RankingHeader>
+        </h1>
+        <p className="ranking-subtitle">Top jugadores por partidas ganadas</p>
+      </div>
 
-      <TableContainer>
-        <RankingTable>
+      <div className="table-container">
+        <table className="ranking-table">
           <thead>
             <tr>
               <th>Posición</th>
@@ -124,220 +125,33 @@ const RankingGlobal = () => {
           </thead>
           <tbody>
             {usuarios.map((usuario, index) => (
-              <RankingRow
+              <tr
                 key={index}
                 ref={(el) => (rowsRef.current[index] = el)}
                 onMouseEnter={() => handleRowHover(index)}
                 onMouseLeave={() => handleRowHoverEnd(index)}
-                rank={usuario.rank}
+                className={`ranking-row`}
               >
-                <RankCell>
-                  <MedalContainer>{getMedalIcon(usuario.rank)}</MedalContainer>
-                </RankCell>
-                <NameCell>{usuario.name}</NameCell>
-                <ScoreCell>
-                  <ScoreBadge>{usuario.games_won}</ScoreBadge>
-                </ScoreCell>
-              </RankingRow>
+                <td className="rank-cell">
+                  <div className="medal-container">{getMedalIcon(usuario.rank)}</div>
+                </td>
+                <td className="name-cell">{usuario.name}</td>
+                <td className="score-cell">
+                  <span className="score-badge">{usuario.games_won}</span>
+                </td>
+              </tr>
             ))}
           </tbody>
-        </RankingTable>
-      </TableContainer>
+        </table>
+      </div>
 
       {usuarios.length === 0 && (
-        <EmptyState>
+        <div className="empty-state">
           <p>No hay usuarios en el ranking aún</p>
-        </EmptyState>
+        </div>
       )}
-    </RankingContainer>
+    </div>
   );
 };
-
-// Styled Components
-const RankingContainer = styled.div`
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  border: 1px solid var(--teal-light);
-  min-height: 500px;
-`;
-
-const RankingHeader = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid var(--accent-primary);
-`;
-
-const Title = styled.h1`
-  color: var(--accent-light);
-  font-size: 2.2rem;
-  margin: 0 0 0.5rem 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-`;
-
-const Subtitle = styled.p`
-  color: var(--text-secondary);
-  font-size: 1rem;
-  margin: 0;
-`;
-
-const TableContainer = styled.div`
-  overflow-x: auto;
-  border-radius: var(--border-radius);
-  background: var(--bg-primary);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
-
-const RankingTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  
-  thead {
-    background: linear-gradient(135deg, var(--teal-medium), var(--accent-primary));
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  
-  th {
-    padding: 1rem;
-    text-align: left;
-    color: white;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-`;
-
-const RankingRow = styled.tr`
-  border-bottom: 1px solid var(--teal-light);
-  transition: all 0.3s ease;
-  background: var(--bg-primary);
-  cursor: pointer;
-  
-  &:hover {
-    background: var(--bg-hover);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  ${props => props.rank === 1 && `
-    background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
-    border-left: 4px solid #FFD700;
-  `}
-  
-  ${props => props.rank === 2 && `
-    background: linear-gradient(90deg, rgba(192, 192, 192, 0.1), transparent);
-    border-left: 4px solid #C0C0C0;
-  `}
-  
-  ${props => props.rank === 3 && `
-    background: linear-gradient(90deg, rgba(205, 127, 50, 0.1), transparent);
-    border-left: 4px solid #CD7F32;
-  `}
-`;
-
-const RankCell = styled.td`
-  padding: 1rem;
-  font-weight: 600;
-  color: var(--accent-light);
-  width: 100px;
-`;
-
-const MedalContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
-`;
-
-const NameCell = styled.td`
-  padding: 1rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  font-size: 1.05rem;
-  flex: 1;
-`;
-
-const ScoreCell = styled.td`
-  padding: 1rem;
-  text-align: right;
-  font-weight: 600;
-`;
-
-const ScoreBadge = styled.span`
-  display: inline-block;
-  background: linear-gradient(135deg, var(--accent-primary), var(--teal-medium));
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  min-width: 60px;
-  text-align: center;
-`;
-
-const LoadingSpinner = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 400px;
-  gap: 1rem;
-  
-  .spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid var(--teal-light);
-    border-top: 4px solid var(--accent-primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  p {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
-  }
-`;
-
-const ErrorMessage = styled.div`
-  padding: 2rem;
-  text-align: center;
-  color: #FF6B6B;
-  font-size: 1.1rem;
-  background: rgba(255, 107, 107, 0.1);
-  border-radius: var(--border-radius);
-  border: 1px solid #FF6B6B;
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 300px;
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-`;
 
 export default RankingGlobal;

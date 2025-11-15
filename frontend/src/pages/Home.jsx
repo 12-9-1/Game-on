@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import JoinNameModal from '../components/JoinNameModal';
+import { SiApplearcade } from "react-icons/si";
 import './Home.css';
 
 function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
@@ -67,7 +68,9 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   return (
     <div className="home-container">
       <div className="home-header">
-        <h1>🎮 Game On - Lobbies</h1>
+        
+        
+        <h1> <SiApplearcade size={50}/>Battle Quiz Arena - Lobbies</h1>
         <p className="subtitle">Únete a una partida o crea la tuya</p>
       </div>
 
