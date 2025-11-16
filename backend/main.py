@@ -23,15 +23,15 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret
 
 # Configure CORS with specific options
-CORS(app, 
-     resources={
-         r"/*": {
-             "origins": ["http://localhost:5173"],
-             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization"],
-             "supports_credentials": True
-         }
-     })
+FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
+
+CORS(app, resources={r"/*": {
+    "origins": [FRONTEND_URL, "http://localhost:5173"],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True
+}})
+
 
 # Initialize Socket.IO with improved configuration
 socketio = SocketIO(app, 
