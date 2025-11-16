@@ -50,16 +50,16 @@ const AppContent = () => {
     console.log("Iniciando conexión Socket.IO...");
     
     // Conectar a Socket.IO
-    const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 10000,
-      autoConnect: true,
-      forceNew: true,
-      withCredentials: true,
+const newSocket = io(BACKEND_URL, {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 10000,
+  autoConnect: true,
+  forceNew: true,
+  withCredentials: true,
       extraHeaders: {
         'Access-Control-Allow-Origin': `${import.meta.env.VITE_URL_FRONTEND}`,
         'Access-Control-Allow-Credentials': 'true'
