@@ -1,12 +1,13 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { FaSun, FaMoon, FaUser, FaSignOutAlt, FaTrophy } from "react-icons/fa";
 import styled from "styled-components";
 
-const Navbar = (onOpenLogin, onOpenRegister) => {
+const Navbar = ({ onLeaveGame }) => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
 
   useEffect(() => {
@@ -19,8 +20,24 @@ const Navbar = (onOpenLogin, onOpenRegister) => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
-  const handleLogout = () => {
+  // Cerrar sesión de usuario (independiente del juego)
+  const handleSessionLogout = () => {
     logout();
+    navigate("/");
+  };
+
+  // Salir de la partida cuando estamos en /game
+  const handleGameExit = () => {
+    if (onLeaveGame) {
+      onLeaveGame();
+    }
+  };
+
+  const showBackButton = ["/profile", "/ranking", "/lobby"].includes(
+    location.pathname
+  );
+
+  const handleBack = () => {
     navigate("/");
   };
 
@@ -36,6 +53,11 @@ const Navbar = (onOpenLogin, onOpenRegister) => {
         </StyledNavLogo>
       </NavBrand>
       <NavActions>
+        {showBackButton && (
+          <BackButton onClick={handleBack}>
+            Volver
+          </BackButton>
+        )}
         <ThemeToggle
           onClick={toggleTheme}
           aria-label="Cambiar tema"
@@ -49,7 +71,14 @@ const Navbar = (onOpenLogin, onOpenRegister) => {
         >
           <FaTrophy /> Ranking
         </RankingButton>
-        {isAuthenticated ? (
+
+        {location.pathname === "/game" && (
+          <LogoutButton onClick={handleGameExit} title="Salir del juego">
+            <FaSignOutAlt /> Salir del juego
+          </LogoutButton>
+        )}
+
+        {isAuthenticated && (
           <>
             <ProfileButton
               onClick={() => navigate("/profile")}
@@ -57,16 +86,9 @@ const Navbar = (onOpenLogin, onOpenRegister) => {
             >
               <FaUser /> {user?.name || "Perfil"}
             </ProfileButton>
-            <LogoutButton onClick={handleLogout} title="Cerrar sesión">
-              <FaSignOutAlt /> Salir
+            <LogoutButton onClick={handleSessionLogout} title="Cerrar sesión">
+              <FaSignOutAlt /> Cerrar sesión
             </LogoutButton>
-          </>
-        ) : (
-          <>
-            <AuthButton onClick={onOpenLogin}>Iniciar Sesión</AuthButton>
-            <AuthButton primary onClick={onOpenRegister}>
-              Registrarse
-            </AuthButton>
           </>
         )}
       </NavActions>
@@ -227,6 +249,17 @@ const LogoutButton = styled(Button)`
   &:hover {
     background-color: var(--accent-hover);
     color: white;
+  }
+`;
+
+const BackButton = styled(Button)`
+  background-color: transparent;
+  color: var(--accent-light);
+  border: 1px solid var(--accent-border);
+
+  &:hover {
+    background-color: var(--bg-hover);
+    color: var(--accent-primary);
   }
 `;
 

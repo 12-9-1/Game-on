@@ -1,11 +1,10 @@
-#backend/main.py
+# backend/main.py
 import os
 from flask import Flask, request, jsonify
-from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_socketio import SocketIO
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
-import uuid
 
 # Load environment variables
 load_dotenv()
@@ -13,6 +12,7 @@ load_dotenv()
 # Get environment variables
 mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
 jwt_secret = os.getenv("JWT_SECRET", "dev-secret-key")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # Connect to MongoDB
 client = MongoClient(mongo_uri)
@@ -22,9 +22,7 @@ db = client['game_on_db']
 app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret
 
-# Configure CORS with specific options
-FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
-
+# Configure CORS (unificado y seguro)
 CORS(app, resources={r"/*": {
     "origins": [FRONTEND_URL, "http://localhost:5173"],
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -32,19 +30,20 @@ CORS(app, resources={r"/*": {
     "supports_credentials": True
 }})
 
-
-# Initialize Socket.IO with improved configuration
-socketio = SocketIO(app, 
-                   cors_allowed_origins="*", 
-                   async_mode='threading',
-                   logger=True,
-                   engineio_logger=True,
-                   ping_timeout=60,
-                   ping_interval=25,
-                   max_http_buffer_size=1e8,  # 100MB max size for messages
-                   http_compression=True,
-                   allow_upgrades=True,
-                   transports=['websocket', 'polling'])
+# Initialize Socket.IO
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode='threading',
+    logger=True,
+    engineio_logger=True,
+    ping_timeout=60,
+    ping_interval=25,
+    max_http_buffer_size=1e8,  # 100MB max size for messages
+    http_compression=True,
+    allow_upgrades=True,
+    transports=['websocket', 'polling']
+)
 
 # Import and register socket events
 from sockets import register_socket_events
@@ -73,8 +72,13 @@ def register_auth_routes():
             
         return protected()
 
-# Register auth routes after app is created
+# Register auth routes
 register_auth_routes()
+
+# Root route for health check
+@app.route("/")
+def index():
+    return "Servidor Game-On funcionando 🚀"
 
 print("Server started successfully")
 
@@ -87,4 +91,3 @@ if __name__ == '__main__':
         debug=False,
         allow_unsafe_werkzeug=True
     )
-
