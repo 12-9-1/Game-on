@@ -1,13 +1,9 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_socketio import SocketIO
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
-
-# ❌ Eliminado eventlet porque NO funciona en Python 3.13
-# import eventlet
-# eventlet.monkey_patch()
 
 # Load environment variables
 load_dotenv()
@@ -25,25 +21,19 @@ db = client['game_on_db']
 app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret
 
-# -----------------------------------
-# 🔥 CORS CORRECTO Y ÚNICO
-# -----------------------------------
-CORS(app, origins=[
+# Allowed origins
+allowed_origins = [
     FRONTEND_URL,
     "https://game-on.vercel.app",
     "https://game-on-lias-projects.vercel.app",
     "https://game-on-git-feature-vercel1-lias-projects-745cbed7.vercel.app"
-], supports_credentials=True)
+]
 
-# -----------------------------------
-# 🔥 Socket.IO SIN EVENTLET
-# -----------------------------------
-# Usamos 'threading' porque es lo más compatible con Render
-socketio = SocketIO(
-    app,
-    cors_allowed_origins="*",
-    async_mode='threading'   # <-- seguro, estable y sin errores
-)
+# CORS
+CORS(app, origins=allowed_origins, supports_credentials=True)
+
+# Socket.IO
+socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading')
 
 # Import sockets
 from sockets import register_socket_events
@@ -61,17 +51,10 @@ def register_auth_routes():
 
 register_auth_routes()
 
-
 @app.route("/")
 def index():
     return "Servidor Game-On funcionando 🚀"
 
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(
-    app,
-    host='0.0.0.0',
-    port=port,
-    allow_unsafe_werkzeug=True
-)
+    socketio.run(app, host='0.0.0.0', port=port, allow_unsafe_werkzeug=True)
