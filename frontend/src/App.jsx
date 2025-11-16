@@ -16,8 +16,13 @@ import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND;
+// Prefer Vite-exposed env vars (must start with VITE_). Keep fallbacks
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.BACKEND_URL;
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL || import.meta.env.FRONTEND_URL;
+
+// Shared socket so React StrictMode remounts do not create/close connections repeatedly
+let sharedSocket = null;
+let sharedSocketInitialized = false;
 
 const AppContent = () => {
   const [socket, setSocket] = useState(null);
@@ -46,89 +51,104 @@ const AppContent = () => {
 
   useEffect(() => {
     // Conectar a Socket.IO con configuración mejorada
-
     console.log("Iniciando conexión Socket.IO...");
-    
-    // Conectar a Socket.IO
-const newSocket = io(BACKEND_URL, {
-  transports: ['websocket', 'polling'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  timeout: 10000,
-  autoConnect: true,
-  forceNew: true,
-  withCredentials: true
-});
 
+    // Si ya existe un socket compartido, reutilizarlo (evita cierres prematuros en StrictMode)
+    if (sharedSocket) {
+      setSocket(sharedSocket);
+      setConnected(sharedSocket.connected);
+      return;
+    }
 
-    newSocket.on('connect', () => {
-      console.log('Conectado al servidor');
-      setConnected(true);
-      setSocket(newSocket);
-      // Solicitar lista de lobbies
-      newSocket.emit('get_lobbies');
+    const newSocket = io(BACKEND_URL, {
+      // For servers that don't support native websocket upgrades (e.g., running with
+      // the Werkzeug/threading mode), force polling transport to avoid WebSocket errors.
+      transports: ['polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 10000,
+      autoConnect: true,
+      // avoid creating multiple underlying connections
+      forceNew: false,
+      withCredentials: true
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Desconectado del servidor');
-      setConnected(false);
-    });
+    sharedSocket = newSocket;
 
-    newSocket.on('connected', (data) => {
-      console.log(data.message);
-    });
+    // Attach handlers only once
+    if (!sharedSocketInitialized) {
+      sharedSocketInitialized = true;
 
-    newSocket.on('error', (data) => {
-      console.error('Error:', data.message);
-      setError(data.message);
-      setTimeout(() => setError(null), 3000);
-    });
+      newSocket.on('connect', () => {
+        console.log('Conectado al servidor');
+        setConnected(true);
+        setSocket(newSocket);
+        newSocket.emit('get_lobbies');
+      });
 
-    newSocket.on('lobbies_list', (data) => {
-      setLobbies(data.lobbies);
-    });
+      newSocket.on('disconnect', () => {
+        console.log('Desconectado del servidor');
+        setConnected(false);
+      });
 
-    newSocket.on('lobby_created', (data) => {
-      console.log('Lobby creado:', data.lobby);
-      setCurrentLobby(data.lobby);
-    });
+      newSocket.on('connected', (data) => {
+        console.log(data.message);
+      });
 
-    newSocket.on('lobby_joined', (data) => {
-      console.log('Te uniste al lobby:', data.lobby);
-      setCurrentLobby(data.lobby);
-    });
+      newSocket.on('error', (data) => {
+        console.error('Error:', data && data.message ? data.message : data);
+        setError(data && data.message ? data.message : 'Error de socket');
+        setTimeout(() => setError(null), 3000);
+      });
 
-    newSocket.on('lobby_left', (data) => {
-      console.log(data.message);
-      setCurrentLobby(null);
-      newSocket.emit('get_lobbies');
-    });
+      newSocket.on('lobbies_list', (data) => {
+        setLobbies(data.lobbies);
+      });
 
-    newSocket.on('lobby_closed', (data) => {
-      console.log('Lobby cerrado:', data.message);
-      setCurrentLobby(null);
-      setGameActive(false);
-      setError(data.message);
-      setTimeout(() => setError(null), 3000);
-      newSocket.emit('get_lobbies');
-    });
+      newSocket.on('lobby_created', (data) => {
+        console.log('Lobby creado:', data.lobby);
+        setCurrentLobby(data.lobby);
+      });
 
-    newSocket.on('game_started', (data) => {
-      console.log('Juego iniciado:', data);
-      setGameActive(true);
-    });
+      newSocket.on('lobby_joined', (data) => {
+        console.log('Te uniste al lobby:', data.lobby);
+        setCurrentLobby(data.lobby);
+      });
 
-    newSocket.on('returned_to_lobby', (data) => {
-      console.log('Volviendo al lobby:', data);
-      setGameActive(false);
-      setCurrentLobby(data.lobby);
-    });
+      newSocket.on('lobby_left', (data) => {
+        console.log(data.message);
+        setCurrentLobby(null);
+        newSocket.emit('get_lobbies');
+      });
 
+      newSocket.on('lobby_closed', (data) => {
+        console.log('Lobby cerrado:', data.message);
+        setCurrentLobby(null);
+        setGameActive(false);
+        setError(data.message);
+        setTimeout(() => setError(null), 3000);
+        newSocket.emit('get_lobbies');
+      });
+
+      newSocket.on('game_started', (data) => {
+        console.log('Juego iniciado:', data);
+        setGameActive(true);
+      });
+
+      newSocket.on('returned_to_lobby', (data) => {
+        console.log('Volviendo al lobby:', data);
+        setGameActive(false);
+        setCurrentLobby(data.lobby);
+      });
+    }
+
+    // NOTE: avoid disconnecting the shared socket on unmount to prevent "closed before established"
     return () => {
-      console.log("Cerrando conexión Socket.IO...");
-      newSocket.close();
+      console.log("Cerrando conexión Socket.IO (efecto unmount)");
+      // Only clear local state — keep the shared socket alive for the app lifecycle
+      setSocket((s) => (s === newSocket ? null : s));
     };
   }, []); // Array vacío - solo se ejecuta una vez
 

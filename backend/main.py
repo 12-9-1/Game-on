@@ -5,6 +5,25 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+# Try to select an async mode that supports WebSocket upgrades in production
+# Prefer eventlet, then gevent, otherwise fallback to threading (less optimal)
+async_mode = 'threading'
+use_eventlet = False
+use_gevent = False
+try:
+    import eventlet
+    eventlet.monkey_patch()
+    async_mode = 'eventlet'
+    use_eventlet = True
+except Exception:
+    try:
+        from gevent import monkey
+        monkey.patch_all()
+        async_mode = 'gevent'
+        use_gevent = True
+    except Exception:
+        async_mode = 'threading'
+
 # Load environment variables
 load_dotenv()
 
@@ -22,17 +41,28 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret
 
 # Allowed origins
+# Always include common localhost dev origins so frontend running on Vite can talk to backend locally.
 allowed_origins = [
     FRONTEND_URL,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://game-on.vercel.app",
     "https://game-on-lias-projects.vercel.app",
     "https://game-on-git-feature-vercel1-lias-projects-745cbed7.vercel.app"
 ]
 
+# In development, you can allow all origins by setting the environment variable
+# ALLOW_ALL_CORS=1 (useful for quick local testing). Otherwise use the explicit list above.
+if os.getenv('ALLOW_ALL_CORS', '').lower() in ('1', 'true', 'yes'):
+    allowed_origins = ['*']
+
+print('Allowed CORS origins:', allowed_origins)
+
 # CORS
 CORS(app, origins=allowed_origins, supports_credentials=True)
 
 # Socket.IO
+# When cors_allowed_origins is '*', python-socketio will allow all origins.
 socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading')
 
 # Import sockets
