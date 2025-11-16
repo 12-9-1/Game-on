@@ -58,7 +58,8 @@ CORS(app, origins=allowed_origins, supports_credentials=True)
 
 # Socket.IO
 # When cors_allowed_origins is '*', python-socketio will allow all origins.
-socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading')
+# Use the detected async_mode (eventlet, gevent, or threading)
+socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode=async_mode)
 
 # Import sockets
 from sockets import register_socket_events
