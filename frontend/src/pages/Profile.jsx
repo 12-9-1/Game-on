@@ -5,7 +5,7 @@ import { FaTrophy, FaGamepad } from 'react-icons/fa';
 
 
 // Use Vite-exposed env var, fallback to legacy name
-const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.BACKEND_URL;
+const backendUrl = import.meta.env.VITE_BACKEND_URL
 
 const Profile = () => {
   const { user } = useAuth();

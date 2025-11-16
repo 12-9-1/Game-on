@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     try {
-      const BACKEND = import.meta.env.VITE_BACKEND_URL || import.meta.env.BACKEND_URL || '';
+      const BACKEND = import.meta.env.VITE_URL_BACKEND 
       const response = await fetch(`${BACKEND}/login`, {
         method: 'POST',
         headers: {
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (name, email, password) => {
     try {
-      const BACKEND = import.meta.env.VITE_BACKEND_URL || import.meta.env.BACKEND_URL || '';
+      const BACKEND = import.meta.env.VITE_URL_BACKEND;
       const response = await fetch(`${BACKEND}/register`, {
         method: 'POST',
         headers: {
