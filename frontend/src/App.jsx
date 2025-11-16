@@ -15,6 +15,7 @@ import Profile from './pages/Profile';
 import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
+
 const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 
@@ -49,7 +50,7 @@ const AppContent = () => {
     console.log("Iniciando conexión Socket.IO...");
     
     // Conectar a Socket.IO
-    const newSocket = io(SOCKET_URL, {
+    const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -60,7 +61,7 @@ const AppContent = () => {
       forceNew: true,
       withCredentials: true,
       extraHeaders: {
-        'Access-Control-Allow-Origin': 'http://localhost:5173',
+        'Access-Control-Allow-Origin': `${import.meta.env.VITE_URL_FRONTEND}`,
         'Access-Control-Allow-Credentials': 'true'
       }
     });
@@ -157,6 +158,14 @@ const AppContent = () => {
     }
   };
 
+  const handleLeaveGame = () => {
+    if (socket) {
+      socket.emit('leave_lobby');
+    }
+    setGameActive(false);
+    setCurrentLobby(null);
+  };
+
   // Mostrar splash screen primero
   if (showSplash) {
     return <SplashScreen onAnimationComplete={handleSplashComplete} />;
@@ -189,10 +198,7 @@ const AppContent = () => {
 
   return (
     <div className="app-container">
-      <Navbar 
-        onOpenLogin={handleOpenLogin} 
-        onOpenRegister={handleOpenRegister} 
-      />
+      <Navbar onLeaveGame={handleLeaveGame} />
       
       {error && (
         <div className="error-toast">
