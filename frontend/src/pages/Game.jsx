@@ -19,6 +19,7 @@ function Game({ socket, currentLobby }) {
   const [loading, setLoading] = useState(true);
   const [lobby, setLobby] = useState(currentLobby || null);
   const [myScore, setMyScore] = useState(0);
+  const [winScore, setWinScore] = useState(1000);
   const mySocketId = socket?.id || null;
   const timerRef = useRef(null);
 
