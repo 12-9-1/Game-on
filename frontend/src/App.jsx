@@ -1,3 +1,4 @@
+//frontend/src/App.jsx
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
@@ -13,6 +14,7 @@ import Register from './pages/auth/Register';
 import Profile from './pages/Profile';
 import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
+
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tu-backend.onrender.com';
 const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND || 'http://localhost:5173';
