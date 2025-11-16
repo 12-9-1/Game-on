@@ -18,7 +18,6 @@ import './App.css';
 
 const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
-
 const AppContent = () => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
