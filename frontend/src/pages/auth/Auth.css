@@ -1,3 +1,4 @@
+
 .auth-container {
   display: flex;
   justify-content: center;
@@ -30,7 +31,7 @@
   letter-spacing: 1px;
 }
 
-.form-group {
+.form-group-register {
   margin-bottom: 1.25rem;
 }
 
@@ -41,7 +42,7 @@
   font-weight: 500;
 }
 
-.form-group input {
+.form-group-register input {
   width: 100%;
   padding: 0.75rem;
   background-color: rgba(255, 255, 255, 0.9);
@@ -52,7 +53,7 @@
   transition: all 0.3s ease;
 }
 
-.form-group input:focus {
+.form-group-register input:focus {
   outline: none;
   border-color: #ffd700; /* Brighter gold on focus */
   box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.3);

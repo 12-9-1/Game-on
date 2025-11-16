@@ -24,7 +24,8 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const BACKEND = import.meta.env.VITE_URL_BACKEND 
+      const response = await fetch(`${BACKEND}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,7 +53,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (name, email, password) => {
     try {
-      const response = await fetch('http://localhost:5000/register', {
+      const BACKEND = import.meta.env.VITE_URL_BACKEND;
+      const response = await fetch(`${BACKEND}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

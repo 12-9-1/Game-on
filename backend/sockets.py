@@ -56,7 +56,7 @@ def register_socket_events(socketio):
                 
                 # Remover jugador
                 lobby['players'] = [p for p in lobby['players'] if p['socket_id'] != sid]
-                
+
                 # Si el lobby está vacío, eliminarlo
                 if len(lobby['players']) == 0:
                     print(f'Eliminando lobby {lobby_id} - vacío')
@@ -66,33 +66,47 @@ def register_socket_events(socketio):
                         'message': 'El lobby está vacío'
                     }, room=lobby_id)
                 else:
-                    # Si el host se desconectó, transferir el rol al siguiente jugador
-                    if was_host and len(lobby['players']) > 0:
-                        new_host = lobby['players'][0]
-                        new_host['is_host'] = True
-                        new_host['ready'] = False  # El nuevo host no necesita estar listo
-                        lobby['host'] = new_host['socket_id']
-                        print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
-                    
-                    # Actualizar el conteo de jugadores
-                    lobby['player_count'] = len(lobby['players'])
-                    
-                    # Notificar a los demás jugadores con la estructura completa del lobby
-                    print(f'Jugador {player_name} salió del lobby {lobby_id}')
-                    emit('player_left', {
-                        'message': f'{player_name} ha salido del lobby',
-                        'lobby': lobby
-                    }, room=lobby_id)
+                    # Si el juego está en curso y solo queda un jugador, ese jugador gana
+                    if lobby.get('status') == 'playing' and len(lobby['players']) == 1:
+                        print(f"Solo queda un jugador en lobby {lobby_id} tras desconexión, finalizando partida")
+                        end_game(lobby_id, socketio)
+                    else:
+                        # Si el host se desconectó, transferir el rol al siguiente jugador
+                        if was_host and len(lobby['players']) > 0:
+                            new_host = lobby['players'][0]
+                            new_host['is_host'] = True
+                            new_host['ready'] = False  # El nuevo host no necesita estar listo
+                            lobby['host'] = new_host['socket_id']
+                            print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
+                        
+                        # Actualizar el conteo de jugadores
+                        lobby['player_count'] = len(lobby['players'])
+                        
+                        # Notificar a los demás jugadores con la estructura completa del lobby
+                        print(f'Jugador {player_name} salió del lobby {lobby_id}')
+                        emit('player_left', {
+                            'message': f'{player_name} ha salido del lobby',
+                            'lobby': lobby
+                        }, room=lobby_id)
                 
             del user_lobbies[sid]
     
     @socketio.on('create_lobby')
     def handle_create_lobby(data):
         sid = request.sid
-        lobby_id = str(uuid.uuid4())[:8]  # ID corto de 8 caracteres
-        
         player_name = data.get('player_name', 'Jugador')
+        public_id = data.get('public_id', None)  # ID del usuario autenticado
         max_players = data.get('max_players', 4)
+        
+        # Verificar si el usuario autenticado ya está en otro lobby
+        if public_id:
+            for lobby_id, lobby in lobbies.items():
+                for player in lobby['players']:
+                    if player.get('public_id') == public_id:
+                        emit('error', {'message': 'Ya estás en otro lobby. Sal de él primero.'})
+                        return
+        
+        lobby_id = str(uuid.uuid4())[:8]  # ID corto de 8 caracteres
         
         # Crear nuevo lobby
         lobbies[lobby_id] = {
@@ -101,6 +115,7 @@ def register_socket_events(socketio):
             'players': [{
                 'socket_id': sid,
                 'name': player_name,
+                'public_id': public_id,
                 'is_host': True,
                 'ready': False
             }],
@@ -125,6 +140,7 @@ def register_socket_events(socketio):
         sid = request.sid
         lobby_id = data.get('lobby_id')
         player_name = data.get('player_name', 'Jugador')
+        public_id = data.get('public_id', None)  # ID del usuario autenticado
         
         # Verificar si el lobby existe
         if lobby_id not in lobbies:
@@ -132,6 +148,13 @@ def register_socket_events(socketio):
             return
         
         lobby = lobbies[lobby_id]
+        
+        # Verificar si el usuario autenticado ya está en este lobby
+        if public_id:
+            for player in lobby['players']:
+                if player.get('public_id') == public_id:
+                    emit('error', {'message': 'Ya estás en este lobby con otra conexión'})
+                    return
         
         # Verificar si el lobby está lleno
         if len(lobby['players']) >= lobby['max_players']:
@@ -147,6 +170,7 @@ def register_socket_events(socketio):
         player = {
             'socket_id': sid,
             'name': player_name,
+            'public_id': public_id,
             'is_host': False,
             'ready': False
         }
@@ -199,20 +223,25 @@ def register_socket_events(socketio):
             del lobbies[lobby_id]
             print(f'Lobby {lobby_id} eliminado (vacío)')
         else:
-            # Si el host se fue, asignar nuevo host
-            if player and player['is_host']:
-                new_host = lobby['players'][0]
-                new_host['is_host'] = True
-                new_host['ready'] = False  # El nuevo host no necesita estar listo
-                lobby['host'] = new_host['socket_id']
-                print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
-            
-            # Notificar a los demás
-            emit('player_left', {
-                'lobby': lobby,
-                'player_name': player['name'] if player else 'Jugador',
-                'player_count': len(lobby['players'])
-            }, room=lobby_id)
+            # Si el juego está en curso y solo queda un jugador, ese jugador gana
+            if lobby.get('status') == 'playing' and len(lobby['players']) == 1:
+                print(f"Solo queda un jugador en lobby {lobby_id} tras leave_lobby, finalizando partida")
+                end_game(lobby_id, socketio)
+            else:
+                # Si el host se fue, asignar nuevo host
+                if player and player['is_host']:
+                    new_host = lobby['players'][0]
+                    new_host['is_host'] = True
+                    new_host['ready'] = False  # El nuevo host no necesita estar listo
+                    lobby['host'] = new_host['socket_id']
+                    print(f'Nuevo host del lobby {lobby_id}: {new_host["name"]}')
+                
+                # Notificar a los demás
+                emit('player_left', {
+                    'lobby': lobby,
+                    'player_name': player['name'] if player else 'Jugador',
+                    'player_count': len(lobby['players'])
+                }, room=lobby_id)
         
         emit('lobby_left', {'message': 'Saliste del lobby'})
     
@@ -489,6 +518,14 @@ def register_socket_events(socketio):
         
         print(f'Ronda terminada en lobby {lobby_id}')
         
+        # Registrar victoria del ganador si está autenticado
+        if results and sorted_players:
+            winner = sorted_players[0]
+            if winner.get('public_id'):  # Solo si el usuario está autenticado
+                from auth import incrementar_partidas_ganadas
+                incrementar_partidas_ganadas(winner['public_id'])
+                print(f"Victoria registrada para usuario: {winner['name']}")
+        
         # Enviar resultados de la ronda
         socketio.emit('round_ended', {
             'results': results,
@@ -719,44 +756,38 @@ def register_socket_events(socketio):
         if all_ready:
             # Iniciar nueva ronda
             lobby['status'] = 'playing'
-            
+
             # Resetear puntuaciones para nueva ronda
             for player in lobby['players']:
                 player['score'] = 0
-            
-            # Generar nuevas preguntas
-            print(f'Generando nuevas preguntas para el lobby {lobby_id}...')
-            print(f'Preguntas ya usadas en este lobby: {len(used_questions_cache.get(lobby_id, []))}')
-            
-            questions = generate_round_questions(num_questions=5)
-            
-            # Guardar nuevas preguntas en el caché
-            if lobby_id not in used_questions_cache:
-                used_questions_cache[lobby_id] = []
-            
-            for q in questions:
-                if 'question' in q:
-                    used_questions_cache[lobby_id].append(q['question'])
-            
-            # Almacenar preguntas del lobby
+
+            # Reiniciar cola y generador de preguntas
+            question_queue[lobby_id] = []
+            start_question_generator(lobby_id)
+
+            # Generar primera pregunta inmediatamente y preparar estado
+            print(f'Generando primera pregunta para nueva ronda en lobby {lobby_id}...')
+            first_question = generate_single_question_sync()
+            if not first_question:
+                emit('error', {'message': 'Error generando pregunta inicial de la nueva ronda'})
+                return
+
             active_questions[lobby_id] = {
-                'questions': questions,
-                'current_question_index': 0,
-                'total_questions': len(questions)
+                'current_question': first_question,
+                'question_number': 1
             }
-            
+
             # Notificar que la nueva ronda comienza
             emit('new_round_started', {
                 'lobby': lobby,
-                'total_questions': len(questions),
                 'message': '¡Nueva ronda comenzando!'
             }, room=lobby_id)
-            
+
             # Emitir actualización del lobby con puntuaciones reseteadas
             emit('lobby_updated', {
                 'lobby': lobby
             }, room=lobby_id)
-            
+
             # Enviar la primera pregunta después de 2 segundos
             socketio.sleep(2)
             send_next_question(lobby_id, socketio)
@@ -820,7 +851,19 @@ def register_socket_events(socketio):
 
         lobby_id = user_lobbies[sid]
         power_type = data.get('power_type')
-        current_points = data.get('current_points', 0)
+
+        # Usar siempre los puntos reales del jugador en el lobby
+        lobby = lobbies.get(lobby_id)
+        if not lobby:
+            emit('error', {'message': 'Lobby no encontrado'})
+            return
+
+        player = next((p for p in lobby['players'] if p['socket_id'] == sid), None)
+        if not player:
+            emit('error', {'message': 'Jugador no encontrado en el lobby'})
+            return
+
+        current_points = player.get('score', 0)
 
         if lobby_id not in powers_managers:
             emit('error', {'message': 'No hay poderes disponibles'})
@@ -829,7 +872,7 @@ def register_socket_events(socketio):
         # Obtener el gestor de poderes
         powers_manager = powers_managers[lobby_id]
 
-        # Intentar usar el poder
+        # Intentar usar el poder con los puntos reales del jugador
         success, result = powers_manager.use_power(power_type, current_points)
 
         if success:
@@ -849,13 +892,20 @@ def register_socket_events(socketio):
                     # Preferir 'correct_answer_index' si existe, si no usar 'correct_answer'
                     effect['correct_index'] = question.get('correct_answer_index', question.get('correct_answer', 0))
 
-            emit('power_used', {
+            # Actualizar puntuación del jugador en el lobby con los nuevos puntos
+            player['score'] = max(0, result['new_points'])
+
+            # Payload de resultado común
+            response_payload = {
                 'success': True,
                 'power_type': power_type,
-                'new_points': result['new_points'],
+                'new_points': player['score'],
                 'cost': result['cost'],
                 'effect': effect
-            })
+            }
+
+            # Enviar al cliente que usó el poder
+            emit('power_used', response_payload)
 
             # Notificar a otros jugadores (opcional)
             emit('player_used_power', {
@@ -863,6 +913,11 @@ def register_socket_events(socketio):
                 'power_type': power_type,
                 'effect': result['effect']
             }, room=lobby_id, skip_sid=request.sid)
+
+            # Emitir actualización del lobby para reflejar el nuevo puntaje
+            emit('lobby_updated', {
+                'lobby': lobby
+            }, room=lobby_id)
         else:
             print(f'Error al usar poder: {result.get("error", "Desconocido")}')
             emit('power_error', {
@@ -920,3 +975,7 @@ def register_socket_events(socketio):
         emit('lobby_updated', {
             'lobby': lobby
         })
+<<<<<<< HEAD
+=======
+
+>>>>>>> f7ff10cf71c57dc24ddc4e1876a5e11b3f8796a4

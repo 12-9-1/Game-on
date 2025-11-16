@@ -50,7 +50,7 @@ const Register = ({ onSuccess }) => {
         <h2>Registro</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
+          <div className="form-group-register">
             <label>Nombre</label>
             <input
               type="text"
@@ -59,7 +59,7 @@ const Register = ({ onSuccess }) => {
               required
             />
           </div>
-          <div className="form-group">
+          <div className="form-group-register">
             <label>Email</label>
             <input
               type="email"
@@ -68,7 +68,7 @@ const Register = ({ onSuccess }) => {
               required
             />
           </div>
-          <div className="form-group">
+          <div className="form-group-register">
             <label>Contraseña</label>
             <input
               type="password"
@@ -77,7 +77,7 @@ const Register = ({ onSuccess }) => {
               required
             />
           </div>
-          <div className="form-group">
+          <div className="form-group-register">
             <label>Confirmar Contraseña</label>
             <input
               type="password"

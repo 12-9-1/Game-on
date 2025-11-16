@@ -1,8 +1,40 @@
 import { useAuth } from '../contexts/AuthContext';
 import styled from 'styled-components';
+import { useState, useEffect } from 'react';
+import { FaTrophy, FaGamepad } from 'react-icons/fa';
+
+
+// Use Vite-exposed env var, fallback to legacy name
+const backendUrl = import.meta.env.VITE_BACKEND_URL
 
 const Profile = () => {
   const { user } = useAuth();
+  const [gamesWon, setGamesWon] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.public_id) {
+      fetchUserStats();
+    }
+  }, [user]);
+
+  const fetchUserStats = async () => {
+    try {
+      const response = await fetch(`${backendUrl}/obtenerUsuarios`);
+      const data = await response.json();
+      
+      if (data.usuarios) {
+        const currentUser = data.usuarios.find(u => u.name === user.name);
+        if (currentUser) {
+          setGamesWon(currentUser.games_won);
+        }
+      }
+    } catch (err) {
+      console.error('Error al obtener estadísticas:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!user) return <Loading>Cargando perfil...</Loading>;
 
@@ -17,6 +49,31 @@ const Profile = () => {
           <DetailItem><strong>ID de usuario:</strong> {user.public_id}</DetailItem>
         </ProfileDetails>
       </ProfileInfo>
+
+      <StatsSection>
+        <StatsTitle>Estadísticas</StatsTitle>
+        <StatsContainer>
+          <StatCard>
+            <StatIcon>
+              <FaTrophy />
+            </StatIcon>
+            <StatContent>
+              <StatLabel>Partidas Ganadas</StatLabel>
+              <StatValue>{loading ? '...' : gamesWon}</StatValue>
+            </StatContent>
+          </StatCard>
+          
+          <StatCard>
+            <StatIcon>
+              <FaGamepad />
+            </StatIcon>
+            <StatContent>
+              <StatLabel>Jugador Registrado</StatLabel>
+              <StatValue>✓</StatValue>
+            </StatContent>
+          </StatCard>
+        </StatsContainer>
+      </StatsSection>
     </ProfileContainer>
   );
 };
@@ -121,6 +178,75 @@ const Loading = styled.div`
   text-align: center;
   padding: 2rem;
   color: var(--text-primary);
+`;
+
+const StatsSection = styled.div`
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 2px solid var(--teal-light);
+`;
+
+const StatsTitle = styled.h2`
+  color: var(--accent-light);
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+`;
+
+const StatsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+`;
+
+const StatCard = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--bg-primary), rgba(0, 0, 0, 0.1));
+  border-radius: var(--border-radius);
+  border: 1px solid var(--teal-light);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border-color: var(--accent-primary);
+  }
+`;
+
+const StatIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--teal-medium));
+  border-radius: 50%;
+  color: white;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+`;
+
+const StatContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const StatLabel = styled.p`
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+`;
+
+const StatValue = styled.p`
+  margin: 0;
+  color: var(--accent-light);
+  font-size: 1.5rem;
+  font-weight: 700;
 `;
 
 export default Profile;
