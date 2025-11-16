@@ -16,10 +16,8 @@ import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
 
-
-// URLs de backend y frontend desde variables de entorno
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND || 'http://localhost:5173';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND;
 
 const AppContent = () => {
   const [socket, setSocket] = useState(null);
@@ -52,21 +50,18 @@ const AppContent = () => {
     console.log("Iniciando conexión Socket.IO...");
     
     // Conectar a Socket.IO
-    const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      timeout: 10000,
-      autoConnect: true,
-      forceNew: true,
-      withCredentials: true,
-      extraHeaders: {
-        'Access-Control-Allow-Origin': `${import.meta.env.VITE_URL_FRONTEND}`,
-        'Access-Control-Allow-Credentials': 'true'
-      }
-    });
+const newSocket = io(BACKEND_URL, {
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 10000,
+  autoConnect: true,
+  forceNew: true,
+  withCredentials: true
+});
+
 
     newSocket.on('connect', () => {
       console.log('Conectado al servidor');

@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/login`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (name, email, password) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/register`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
