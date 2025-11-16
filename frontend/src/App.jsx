@@ -14,7 +14,8 @@ import Profile from './pages/Profile';
 import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
-const SOCKET_URL = `${import.meta.env.VITE_URL_BACKEND}`;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tu-backend.onrender.com';
+const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND || 'http://localhost:5173';
 
 const AppContent = () => {
   const [socket, setSocket] = useState(null);
