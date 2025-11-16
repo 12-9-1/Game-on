@@ -6,10 +6,15 @@ import Login from "./auth/Login";
 import Register from "./auth/Register";
 import "react-toastify/dist/ReactToastify.css";
 import JoinNameModal from "../components/JoinNameModal";
+
+// Icons
 import { SiApplearcade } from "react-icons/si";
 import { TiPlus } from "react-icons/ti";
 import { LuPaperclip } from "react-icons/lu";
 import { MdMeetingRoom } from "react-icons/md";
+import { IoMdLogIn } from "react-icons/io";
+import { FaUserPlus } from "react-icons/fa";
+
 import "./Home.css";
 
 function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
@@ -442,12 +447,13 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                     className="auth-button login"
                     onClick={() => setShowLoginModal(true)}
                   >
-                    Iniciar Sesión
+                    <IoMdLogIn className="btn-icon" /> {""} Iniciar Sesión
                   </button>
                   <button
                     className="auth-button register"
                     onClick={() => setShowRegisterModal(true)}
                   >
+                    <FaUserPlus className="btn-icon" />
                     Registrarse
                   </button>
                 </div>

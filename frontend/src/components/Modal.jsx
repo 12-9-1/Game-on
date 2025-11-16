@@ -1,15 +1,15 @@
-import { useEffect } from 'react';
-import styled from 'styled-components';
+import { useEffect } from "react";
+import styled from "styled-components";
 
 const Modal = ({ isOpen, onClose, children }) => {
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]);
 
@@ -17,7 +17,7 @@ const Modal = ({ isOpen, onClose, children }) => {
 
   return (
     <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={e => e.stopPropagation()}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
         <CloseButton onClick={onClose}>×</CloseButton>
         {children}
       </ModalContent>
@@ -53,12 +53,12 @@ const CloseButton = styled.button`
   position: absolute;
   top: 10px;
   right: 15px;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   background: none;
   border: none;
   cursor: pointer;
   color: ${({ theme }) => theme.text};
-  padding: 0.5rem;
+  padding: 0.3rem;
   line-height: 1;
   &:hover {
     color: ${({ theme }) => theme.primary};
