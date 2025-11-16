@@ -5,6 +5,9 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
+import eventlet
+
+eventlet.monkey_patch()
 
 # Load environment variables
 load_dotenv()
@@ -33,17 +36,18 @@ CORS(app, resources={r"/*": {
 # Initialize Socket.IO
 socketio = SocketIO(
     app,
-    cors_allowed_origins="*",
-    async_mode='eventlet',
+    cors_allowed_origins=[FRONTEND_URL, "http://localhost:5173"],
+    async_mode='eventlet',  # importante
     logger=True,
     engineio_logger=True,
     ping_timeout=60,
     ping_interval=25,
-    max_http_buffer_size=1e8,  # 100MB max size for messages
+    max_http_buffer_size=1e8,
     http_compression=True,
     allow_upgrades=True,
     transports=['websocket', 'polling']
 )
+
 
 # Import and register socket events
 from sockets import register_socket_events
@@ -88,6 +92,5 @@ if __name__ == '__main__':
         app,
         host='0.0.0.0',
         port=port,
-        debug=False,
-        allow_unsafe_werkzeug=True
+        debug=False
     )
