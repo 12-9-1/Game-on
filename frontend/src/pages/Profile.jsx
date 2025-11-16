@@ -16,7 +16,7 @@ const Profile = () => {
 
   const fetchUserStats = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_URL_BACKEND}/obtenerUsuarios`);
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/obtenerUsuarios`);
       const data = await response.json();
       
       if (data.usuarios) {
