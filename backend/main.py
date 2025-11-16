@@ -1,3 +1,4 @@
+# backend/main.py
 import os
 from flask import Flask
 from flask_socketio import SocketIO
@@ -24,16 +25,22 @@ app.config['SECRET_KEY'] = jwt_secret
 # Allowed origins
 allowed_origins = [
     FRONTEND_URL,
+    "http://localhost:5173",
     "https://game-on.vercel.app",
     "https://game-on-lias-projects.vercel.app",
-    "https://game-on-git-feature-vercel1-lias-projects-745cbed7.vercel.app"
+    "https://game-on-8nge.onrender.com"
 ]
 
 # CORS
 CORS(app, origins=allowed_origins, supports_credentials=True)
 
-# Socket.IO
-socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='threading')
+# Socket.IO (🚀 SIN eventlet – modo threading)
+socketio = SocketIO(
+    app,
+    cors_allowed_origins=allowed_origins,
+    async_mode='threading',  # ← ✔️ ESTO FUNCIONA EN RENDER
+    manage_session=False
+)
 
 # Import sockets
 from sockets import register_socket_events
@@ -55,6 +62,6 @@ register_auth_routes()
 def index():
     return "Servidor Game-On funcionando 🚀"
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, allow_unsafe_werkzeug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host="0.0.0.0", port=port)

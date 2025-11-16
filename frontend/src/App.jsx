@@ -1,7 +1,6 @@
-//frontend/src/App.jsx
+// frontend/src/App.jsx
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import Home from './pages/Home';
 import Lobby from './pages/Lobby';
 import Game from './pages/Game';
@@ -14,13 +13,28 @@ import Register from './pages/auth/Register';
 import Profile from './pages/Profile';
 import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
+import { io } from 'socket.io-client';
+
+// URLs del backend y frontend desde .env
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL; // debe ser tu URL de Render
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL; // debe ser tu URL de Render
 
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND;
+// Creamos el socket global (no conectado automáticamente)
+const socket = io(BACKEND_URL, {
+
+  transports: ['websocket'],
+  withCredentials: true,
+  autoConnect: false,
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  forceNew: true,
+});
+
 
 const AppContent = () => {
-  const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const [lobbies, setLobbies] = useState([]);
   const [currentLobby, setCurrentLobby] = useState(null);
@@ -37,171 +51,108 @@ const AppContent = () => {
   const handleOpenRegister = () => setShowRegister(true);
   const handleCloseRegister = () => setShowRegister(false);
 
-  // Manejar cuando termina el splash
+  // Cuando termina el splash
   const handleSplashComplete = () => {
-    console.log("Splash screen completado");
     setShowSplash(false);
     setIsInitialized(true);
   };
 
+  // Conexión socket después del splash
   useEffect(() => {
-    // Conectar a Socket.IO con configuración mejorada
+    if (!isInitialized) return;
 
-    console.log("Iniciando conexión Socket.IO...");
-    
-    // Conectar a Socket.IO
-const newSocket = io(BACKEND_URL, {
-  transports: ['websocket', 'polling'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-  reconnectionDelayMax: 5000,
-  timeout: 10000,
-  autoConnect: true,
-  forceNew: true,
-  withCredentials: true
-});
+    console.log('Conectando a Socket.IO...');
+    socket.connect();
 
-
-    newSocket.on('connect', () => {
-      console.log('Conectado al servidor');
+    socket.on('connect', () => {
+      console.log('Socket conectado');
       setConnected(true);
-      setSocket(newSocket);
-      // Solicitar lista de lobbies
-      newSocket.emit('get_lobbies');
+      socket.emit('get_lobbies'); // obtenemos lobbies al conectar
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Desconectado del servidor');
+    socket.on('disconnect', () => {
+      console.log('Socket desconectado');
       setConnected(false);
     });
 
-    newSocket.on('connected', (data) => {
-      console.log(data.message);
-    });
-
-    newSocket.on('error', (data) => {
-      console.error('Error:', data.message);
-      setError(data.message);
+    socket.on('error', (data) => {
+      console.error('Error:', data?.message || data);
+      setError(data?.message || 'Error en la conexión');
       setTimeout(() => setError(null), 3000);
     });
 
-    newSocket.on('lobbies_list', (data) => {
-      setLobbies(data.lobbies);
-    });
-
-    newSocket.on('lobby_created', (data) => {
-      console.log('Lobby creado:', data.lobby);
-      setCurrentLobby(data.lobby);
-    });
-
-    newSocket.on('lobby_joined', (data) => {
-      console.log('Te uniste al lobby:', data.lobby);
-      setCurrentLobby(data.lobby);
-    });
-
-    newSocket.on('lobby_left', (data) => {
-      console.log(data.message);
+    socket.on('lobbies_list', (data) => setLobbies(data.lobbies));
+    socket.on('lobby_created', (data) => setCurrentLobby(data.lobby));
+    socket.on('lobby_joined', (data) => setCurrentLobby(data.lobby));
+    socket.on('lobby_left', (data) => {
       setCurrentLobby(null);
-      newSocket.emit('get_lobbies');
+      socket.emit('get_lobbies');
     });
-
-    newSocket.on('lobby_closed', (data) => {
-      console.log('Lobby cerrado:', data.message);
+    socket.on('lobby_closed', (data) => {
       setCurrentLobby(null);
       setGameActive(false);
       setError(data.message);
       setTimeout(() => setError(null), 3000);
-      newSocket.emit('get_lobbies');
+      socket.emit('get_lobbies');
     });
-
-    newSocket.on('game_started', (data) => {
-      console.log('Juego iniciado:', data);
-      setGameActive(true);
-    });
-
-    newSocket.on('returned_to_lobby', (data) => {
-      console.log('Volviendo al lobby:', data);
+    socket.on('game_started', (data) => setGameActive(true));
+    socket.on('returned_to_lobby', (data) => {
       setGameActive(false);
       setCurrentLobby(data.lobby);
     });
 
     return () => {
-      console.log("Cerrando conexión Socket.IO...");
-      newSocket.close();
+      console.log('Desconectando socket...');
+      socket.disconnect();
     };
-  }, []); // Array vacío - solo se ejecuta una vez
+  }, [isInitialized]);
 
-  // Actualizar lista de lobbies periódicamente
+  // Actualizar lobbies cada 3 segundos si estamos conectados y sin lobby
   useEffect(() => {
-    if (!socket || !connected || currentLobby) return;
+    if (!connected || currentLobby) return;
 
     const interval = setInterval(() => {
       socket.emit('get_lobbies');
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [socket, connected, currentLobby]);
+  }, [connected, currentLobby]);
 
-  const handleCreateLobby = (data) => {
-    if (socket) {
-      socket.emit('create_lobby', data);
-    }
-  };
-
-  const handleJoinLobby = (data) => {
-    if (socket) {
-      socket.emit('join_lobby', data);
-    }
-  };
-
+  const handleCreateLobby = (data) => socket.emit('create_lobby', data);
+  const handleJoinLobby = (data) => socket.emit('join_lobby', data);
   const handleLeaveGame = () => {
-    if (socket) {
-      socket.emit('leave_lobby');
-    }
+    socket.emit('leave_lobby');
     setGameActive(false);
     setCurrentLobby(null);
   };
 
-  // Mostrar splash screen primero
-  if (showSplash) {
-    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
-  }
-
-  // Esperar inicialización después del splash
-  if (!isInitialized) {
+  // Pantallas condicionales
+  if (showSplash) return <SplashScreen onAnimationComplete={handleSplashComplete} />;
+  if (!isInitialized)
     return (
       <div className="app-container">
         <div className="loading-screen">
-          <div className="loading-spinner"></div>
+          <div className="loading-spinner" />
           <h2>Inicializando aplicación...</h2>
         </div>
       </div>
     );
-  }
-
-  // Mostrar loading mientras se conecta
-  if (!connected) {
+  if (!connected)
     return (
       <div className="app-container">
         <div className="loading-screen">
-          <div className="loading-spinner"></div>
+          <div className="loading-spinner" />
           <h2>Conectando al servidor...</h2>
           <p>Por favor espera un momento</p>
         </div>
       </div>
     );
-  }
 
   return (
     <div className="app-container">
       <Navbar onLeaveGame={handleLeaveGame} />
-      
-      {error && (
-        <div className="error-toast">
-          ⚠️ {error}
-        </div>
-      )}
+
+      {error && <div className="error-toast">⚠️ {error}</div>}
 
       <Modal isOpen={showLogin} onClose={handleCloseLogin}>
         <Login onSuccess={handleCloseLogin} />
@@ -210,59 +161,36 @@ const newSocket = io(BACKEND_URL, {
       <Modal isOpen={showRegister} onClose={handleCloseRegister}>
         <Register onSuccess={handleCloseRegister} />
       </Modal>
-      
+
       <Routes>
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             currentLobby ? (
               <Navigate to="/lobby" replace />
             ) : (
-              <Home 
-                socket={socket}
-                lobbies={lobbies}
-                onCreateLobby={handleCreateLobby}
-                onJoinLobby={handleJoinLobby}
-              />
+              <Home socket={socket} lobbies={lobbies} onCreateLobby={handleCreateLobby} onJoinLobby={handleJoinLobby} />
             )
-          } 
+          }
         />
-        <Route 
-          path="/lobby" 
+        <Route
+          path="/lobby"
           element={
             currentLobby && !gameActive ? (
-              <Lobby 
-                lobby={currentLobby} 
-                socket={socket}
-              />
+              <Lobby lobby={currentLobby} socket={socket} />
             ) : gameActive ? (
               <Navigate to="/game" replace />
             ) : (
               <Navigate to="/" replace />
             )
-          } 
+          }
         />
-        <Route 
-          path="/game" 
-          element={
-            gameActive && currentLobby ? (
-              <Game 
-                socket={socket}
-                currentLobby={currentLobby}
-              />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          } 
+        <Route
+          path="/game"
+          element={gameActive && currentLobby ? <Game socket={socket} currentLobby={currentLobby} /> : <Navigate to="/" replace />}
         />
-        <Route 
-          path="/profile" 
-          element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />} 
-        />
-        <Route 
-          path="/ranking" 
-          element={<RankingGlobal />} 
-        />
+        <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />} />
+        <Route path="/ranking" element={<RankingGlobal />} />
       </Routes>
     </div>
   );
@@ -273,7 +201,7 @@ function App() {
     <Router
       future={{
         v7_startTransition: true,
-        v7_relativeSplatPath: true
+        v7_relativeSplatPath: true,
       }}
     >
       <AuthProvider>
