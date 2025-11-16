@@ -1,3 +1,4 @@
+//frontend/src/App.jsx
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
@@ -14,10 +15,11 @@ import Profile from './pages/Profile';
 import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
+
+
 // URLs de backend y frontend desde variables de entorno
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND || 'http://localhost:5173';
-
 
 const AppContent = () => {
   const [socket, setSocket] = useState(null);
