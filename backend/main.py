@@ -4,9 +4,10 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pymongo import MongoClient
-import eventlet
 
-eventlet.monkey_patch()
+# ❌ Eliminado eventlet porque NO funciona en Python 3.13
+# import eventlet
+# eventlet.monkey_patch()
 
 # Load environment variables
 load_dotenv()
@@ -24,9 +25,9 @@ db = client['game_on_db']
 app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret
 
-# --------------------------
+# -----------------------------------
 # 🔥 CORS CORRECTO Y ÚNICO
-# --------------------------
+# -----------------------------------
 CORS(app, origins=[
     FRONTEND_URL,
     "https://game-on.vercel.app",
@@ -34,16 +35,14 @@ CORS(app, origins=[
     "https://game-on-git-feature-vercel1-lias-projects-745cbed7.vercel.app"
 ], supports_credentials=True)
 
-# SocketIO
+# -----------------------------------
+# 🔥 Socket.IO SIN EVENTLET
+# -----------------------------------
+# Usamos 'threading' porque es lo más compatible con Render
 socketio = SocketIO(
     app,
-    cors_allowed_origins=[
-        FRONTEND_URL,
-        "https://game-on.vercel.app",
-        "https://game-on-lias-projects.vercel.app",
-        "http://localhost:5173"
-    ],
-    async_mode='eventlet'
+    cors_allowed_origins="*",
+    async_mode='threading'   # <-- seguro, estable y sin errores
 )
 
 # Import sockets
