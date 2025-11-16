@@ -47,7 +47,7 @@ const AppContent = () => {
     console.log("Iniciando conexión Socket.IO...");
     
     // Conectar a Socket.IO
-    const newSocket = io(SOCKET_URL, {
+    const newSocket = io(import.meta.env.VITE_BACKEND_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
