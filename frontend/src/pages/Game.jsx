@@ -18,7 +18,7 @@ function Game({ socket, currentLobby }) {
   const [loading, setLoading] = useState(true);
   const [lobby, setLobby] = useState(currentLobby || null);
   const [myScore, setMyScore] = useState(0);
-  const [winScore, setWinScore] = useState(1000); // Default win score
+  const [winScore, setWinScore] = useState(1000);
   const mySocketId = socket?.id || null;
   const timerRef = useRef(null);
   // --- NUEVO: estado para fin de ronda ---
@@ -241,8 +241,29 @@ function Game({ socket, currentLobby }) {
 
   // Pantalla de resultados al finalizar la ronda
   if (roundEnded && roundResults) {
+    // Si solo queda un jugador, mostrar solo el botón para volver al lobby
+    if (roundResults.solo_player) {
+      return (
+        <div className="game-container">
+          <div className="results-screen">
+            <h1 className="results-title">Partida finalizada</h1>
+            <p className="solo-player-message">
+              Los demás jugadores se han desconectado. La partida ha terminado.
+            </p>
+            <div className="results-actions">
+              <button className="btn-back-lobby" onClick={handleBackToLobby}>
+                Volver al lobby
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const totalNonHost = (lobby?.players || []).filter((p) => !p.is_host).length;
     const readyNonHost = (lobby?.players || []).filter((p) => !p.is_host && p.ready).length;
+    const isSoloPlayer = (lobby?.players || []).length === 1;
+    
     return (
       <div className="game-container">
         <div className="results-screen">
@@ -274,9 +295,11 @@ function Game({ socket, currentLobby }) {
           </div>
 
           <div className="results-actions">
-            <button className="btn-new-round" onClick={handleReadyForNewRound}>
-              Listo para nueva ronda
-            </button>
+            {!isSoloPlayer && (
+              <button className="btn-new-round" onClick={handleReadyForNewRound}>
+                Listo para nueva ronda
+              </button>
+            )}
             {lobby?.host === mySocketId && (
               <button className="btn-back-lobby" onClick={handleBackToLobby}>
                 Volver al lobby
@@ -284,11 +307,13 @@ function Game({ socket, currentLobby }) {
             )}
           </div>
 
-          <div className="ready-waiting">
-            <div className="ready-counter">{readyNonHost}/{totalNonHost} listos</div>
-            <div className="spinner" />
-            <p className="waiting-host-message">Esperando jugadores listos...</p>
-          </div>
+          {!isSoloPlayer && (
+            <div className="ready-waiting">
+              <div className="ready-counter">{readyNonHost}/{totalNonHost} listos</div>
+              <div className="spinner" />
+              <p className="waiting-host-message">Esperando jugadores listos...</p>
+            </div>
+          )}
         </div>
       </div>
     );

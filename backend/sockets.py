@@ -526,10 +526,14 @@ def register_socket_events(socketio):
                 incrementar_partidas_ganadas(winner['public_id'])
                 print(f"Victoria registrada para usuario: {winner['name']}")
         
+        # Detectar si solo queda un jugador
+        solo_player = len(lobby['players']) == 1
+        
         # Enviar resultados de la ronda
         socketio.emit('round_ended', {
             'results': results,
-            'winner': results[0] if results else None
+            'winner': results[0] if results else None,
+            'solo_player': solo_player  # Flag para indicar que solo queda un jugador
         }, room=lobby_id)
         
         # Emitir actualización del lobby con puntuaciones finales
@@ -975,4 +979,7 @@ def register_socket_events(socketio):
         emit('lobby_updated', {
             'lobby': lobby
         })
+<<<<<<< HEAD
+=======
 
+>>>>>>> f7ff10cf71c57dc24ddc4e1876a5e11b3f8796a4

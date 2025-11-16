@@ -62,10 +62,18 @@ db = client['game_on_db']
 app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret
 
-# Allowed origins
-# Always include common localhost dev origins so frontend running on Vite can talk to backend locally.
+"""
+Unify CORS configuration to allow local Vite dev servers and respect
+an environment override. We include both 5173 and 5174 localhost
+origins so the frontend can run on either port during development.
+"""
+
 allowed_origins = [
     FRONTEND_URL,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
 ]
 
 # In development, you can allow all origins by setting the environment variable

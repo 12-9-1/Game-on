@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { FaSun, FaMoon, FaUser, FaSignOutAlt, FaTrophy } from "react-icons/fa";
+import { FaSun, FaMoon, FaUser, FaSignOutAlt, FaTrophy, FaBars, FaTimes } from "react-icons/fa";
 import styled from "styled-components";
 
 const Navbar = ({ onLeaveGame }) => {
@@ -9,12 +9,18 @@ const Navbar = ({ onLeaveGame }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     // Aplicar el tema guardado al cargar
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  // Cerrar el menú cuando cambia la ruta
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
@@ -39,20 +45,35 @@ const Navbar = ({ onLeaveGame }) => {
 
   const handleBack = () => {
     navigate("/");
+    setIsMenuOpen(false);
   };
 
+  const handleNavigate = (path) => {
+    navigate(path);
+    setIsMenuOpen(false);
+  };
+
+  const isInGame = location.pathname === "/game";
+
   return (
-    <Nav>
-      <NavBrand>
-        <StyledNavLogo href="/" aria-label="Battle Quiz Arena">
-          <LogoContainer>
-            <BattleText>BATTLE</BattleText>
-            <QuizText>QUIZ</QuizText>
-            <ArenaText>ARENA</ArenaText>
-          </LogoContainer>
-        </StyledNavLogo>
-      </NavBrand>
-      <NavActions>
+    <>
+      {isMenuOpen && <Overlay onClick={() => setIsMenuOpen(false)} />}
+      <Nav>
+        <NavBrand>
+          <StyledNavLogo href="/" aria-label="Battle Quiz Arena">
+            <LogoContainer>
+              <BattleText>BATTLE</BattleText>
+              <QuizText>QUIZ</QuizText>
+              <ArenaText>ARENA</ArenaText>
+            </LogoContainer>
+          </StyledNavLogo>
+        </NavBrand>
+        
+        <HamburgerButton onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
+          {isMenuOpen ? <FaTimes /> : <FaBars />}
+        </HamburgerButton>
+
+        <NavActions $isOpen={isMenuOpen}>
         {showBackButton && (
           <BackButton onClick={handleBack}>
             Volver
@@ -65,23 +86,26 @@ const Navbar = ({ onLeaveGame }) => {
         >
           {theme === "light" ? <FaMoon /> : <FaSun />}
         </ThemeToggle>
-        <RankingButton
-          onClick={() => navigate("/ranking")}
-          title="Ver ranking global"
-        >
-          <FaTrophy /> Ranking
-        </RankingButton>
+        
+        {!isInGame && (
+          <RankingButton
+            onClick={() => handleNavigate("/ranking")}
+            title="Ver ranking global"
+          >
+            <FaTrophy /> Ranking
+          </RankingButton>
+        )}
 
-        {location.pathname === "/game" && (
+        {isInGame && (
           <LogoutButton onClick={handleGameExit} title="Salir del juego">
             <FaSignOutAlt /> Salir del juego
           </LogoutButton>
         )}
 
-        {isAuthenticated && (
+        {isAuthenticated && !isInGame && (
           <>
             <ProfileButton
-              onClick={() => navigate("/profile")}
+              onClick={() => handleNavigate("/profile")}
               title="Ver perfil"
             >
               <FaUser /> {user?.name || "Perfil"}
@@ -93,6 +117,7 @@ const Navbar = ({ onLeaveGame }) => {
         )}
       </NavActions>
     </Nav>
+    </>
   );
 };
 
@@ -102,13 +127,18 @@ const Nav = styled.nav`
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: var(--bg-secondary);
+  background-color: transparent;
+  backdrop-filter: blur(10px);
   color: var(--text-primary);
   box-shadow: var(--box-shadow);
   position: sticky;
   top: 0;
   z-index: 1000;
   border-bottom: 2px solid var(--accent-border);
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 const NavBrand = styled.div`
@@ -126,6 +156,10 @@ const LogoContainer = styled.div`
   padding-right: 4rem;
   gap: 0.1rem;
   overflow: visible;
+
+  @media (max-width: 768px) {
+    padding-right: 2rem;
+  }
 `;
 
 const BattleText = styled.span`
@@ -139,6 +173,10 @@ const BattleText = styled.span`
   text-shadow: 0 0 40px rgba(251, 191, 36, 0.5);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.4rem;
+  }
 `;
 
 const QuizText = styled.span`
@@ -151,6 +189,10 @@ const QuizText = styled.span`
   background-clip: text;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.4rem;
+  }
 `;
 
 const ArenaText = styled.span`
@@ -195,6 +237,65 @@ const NavActions = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
+
+  @media (max-width: 768px) {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 280px;
+    background-color: var(--bg-secondary);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    padding: 2rem 1rem;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+    transform: translateX(${props => props.$isOpen ? '0' : '100%'});
+    transition: transform 0.3s ease-in-out;
+    z-index: 999;
+    overflow-y: auto;
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+`;
+
+const HamburgerButton = styled.button`
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent-light);
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 1001;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: var(--bg-hover);
+    transform: scale(1.1);
+  }
+
+  @media (max-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
+const Overlay = styled.div`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    backdrop-filter: blur(2px);
+  }
 `;
 
 const Button = styled.button`
@@ -208,6 +309,7 @@ const Button = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  justify-content: center;
 
   &:hover {
     transform: translateY(-1px);
@@ -216,6 +318,12 @@ const Button = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    justify-content: flex-start;
   }
 `;
 
