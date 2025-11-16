@@ -59,12 +59,9 @@ const newSocket = io(BACKEND_URL, {
   timeout: 10000,
   autoConnect: true,
   forceNew: true,
-  withCredentials: true,
-      extraHeaders: {
-        'Access-Control-Allow-Origin': `${import.meta.env.VITE_URL_FRONTEND}`,
-        'Access-Control-Allow-Credentials': 'true'
-      }
-    });
+  withCredentials: true
+});
+
 
     newSocket.on('connect', () => {
       console.log('Conectado al servidor');
