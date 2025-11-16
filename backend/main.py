@@ -30,7 +30,7 @@ load_dotenv()
 # Environment
 mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
 jwt_secret = os.getenv("JWT_SECRET", "dev-secret-key")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = os.getenv("URL_FRONTEND", "http://localhost:5173")
 
 # Connect DB
 client = MongoClient(mongo_uri)
@@ -44,11 +44,6 @@ app.config['SECRET_KEY'] = jwt_secret
 # Always include common localhost dev origins so frontend running on Vite can talk to backend locally.
 allowed_origins = [
     FRONTEND_URL,
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://game-on.vercel.app",
-    "https://game-on-lias-projects.vercel.app",
-    "https://game-on-git-feature-vercel1-lias-projects-745cbed7.vercel.app"
 ]
 
 # In development, you can allow all origins by setting the environment variable
