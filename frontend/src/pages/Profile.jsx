@@ -3,6 +3,10 @@ import styled from 'styled-components';
 import { useState, useEffect } from 'react';
 import { FaTrophy, FaGamepad } from 'react-icons/fa';
 
+
+// ✅ FIX: variable del backend
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 const Profile = () => {
   const { user } = useAuth();
   const [gamesWon, setGamesWon] = useState(0);
@@ -16,7 +20,7 @@ const Profile = () => {
 
   const fetchUserStats = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/obtenerUsuarios`);
+      const response = await fetch(`${backendUrl}/obtenerUsuarios`);
       const data = await response.json();
       
       if (data.usuarios) {
