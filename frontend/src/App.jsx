@@ -90,10 +90,23 @@ const AppContent = () => {
       setCurrentLobby(data.lobby);
     });
 
+    // Cleanup: solo remover listeners, NO desconectar el socket
+    // El socket es global y debe mantenerse conectado durante toda la vida de la app
     return () => {
-      console.log("Cerrando conexión Socket.IO...");
-      socket.disconnect();
+      console.log("Limpiando listeners de Socket.IO...");
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('connected');
+      socket.off('error');
+      socket.off('lobbies_list');
+      socket.off('lobby_created');
+      socket.off('lobby_joined');
+      socket.off('lobby_left');
+      socket.off('lobby_closed');
+      socket.off('game_started');
+      socket.off('returned_to_lobby');
     };
+    
   }, []);
 
   // Actualizar lista de lobbies periódicamente
