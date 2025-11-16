@@ -16,8 +16,8 @@ import RankingGlobal from './pages/ranking/RankingGlobal';
 import './App.css';
 
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND || 'http://localhost:5173';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const FRONTEND_URL = import.meta.env.VITE_URL_FRONTEND;
 
 const AppContent = () => {
   const [socket, setSocket] = useState(null);
