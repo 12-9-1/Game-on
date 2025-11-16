@@ -382,6 +382,17 @@
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
+.solo-player-message {
+  color: var(--teal-light);
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--teal-light);
+  border-radius: 16px;
+  line-height: 1.6;
+}
+
 .winner-card {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
   border: 3px solid var(--gold-400);
