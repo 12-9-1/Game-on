@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useConfirmModal } from "../contexts/ConfirmModalContext";
 import PowersPanel from "../components/PowersPanel";
 import GameSidebar from "../components/GameSidebar";
 import "./Game.css";
 
 function Game({ socket, currentLobby }) {
   const navigate = useNavigate();
+  const { showConfirm } = useConfirmModal();
+
   const [question, setQuestion] = useState(null);
   const [powers, setPowers] = useState([]);
   const [hiddenOptions, setHiddenOptions] = useState([]);
@@ -21,7 +24,6 @@ function Game({ socket, currentLobby }) {
   const [winScore, setWinScore] = useState(1000);
   const mySocketId = socket?.id || null;
   const timerRef = useRef(null);
-  // --- NUEVO: estado para fin de ronda ---
   const [roundResults, setRoundResults] = useState(null);
   const [roundEnded, setRoundEnded] = useState(false);
   const [playersReady, setPlayersReady] = useState([]);
@@ -30,7 +32,6 @@ function Game({ socket, currentLobby }) {
     if (!socket) return;
 
     const onNewQuestion = (payload) => {
-      // The payload itself is the question data, not wrapped in a 'question' property
       setQuestion(payload || null);
       setHiddenOptions([]);
       setSelectedAnswer(null);
@@ -42,20 +43,18 @@ function Game({ socket, currentLobby }) {
       setLoading(false);
       setTimeLeft(payload.time_limit || 30);
 
-      console.log("New question received:", payload); // Debug log
+      console.log("New question received:", payload);
     };
 
     const onPowerUsed = (payload) => {
       if (!payload || !payload.effect) return;
       const eff = payload.effect;
 
-      // Actualizar puntaje si el backend envía new_points tras usar el poder
       if (typeof payload.new_points === "number") {
         setMyScore(payload.new_points);
       }
 
       if (eff.type === "fifty_fifty" && typeof eff.correct_index === "number") {
-        // hide all incorrect except one other so only 2 remain (approximate behavior)
         const correct = eff.correct_index;
         const incorrect = [];
         if (question?.options) {
@@ -63,7 +62,6 @@ function Game({ socket, currentLobby }) {
             if (i !== correct) incorrect.push(i);
           });
         }
-        // choose one incorrect to remain visible
         let hide = [...incorrect];
         if (hide.length > 1) {
           const keep = Math.floor(Math.random() * hide.length);
@@ -71,45 +69,41 @@ function Game({ socket, currentLobby }) {
         }
         setHiddenOptions(hide);
       } else if (eff.type === "time_boost") {
-        // El backend envía added_time para el poder de tiempo extra
         setTimeLeft((t) => Math.max(0, t + (eff.added_time || 10)));
       }
     };
 
     const onLobbyUpdated = (payload) => {
-      console.log("Lobby updated:", payload); // Debug log
+      console.log("Lobby updated:", payload);
       setLobby(payload.lobby || lobby);
 
-      // Update score if my_score is provided in the payload
       if (payload.my_score != null) {
-        console.log("Updating score from lobby update:", payload.my_score); // Debug log
+        console.log("Updating score from lobby update:", payload.my_score);
         setMyScore(payload.my_score);
-      }
-      // If no my_score in payload, try to find the current player in the lobby
-      else if (payload.lobby?.players && mySocketId) {
+      } else if (payload.lobby?.players && mySocketId) {
         const currentPlayer = payload.lobby.players.find(
           (p) => p.socket_id === mySocketId
         );
         if (currentPlayer && currentPlayer.score !== undefined) {
-          console.log("Updating score from player data:", currentPlayer.score); // Debug log
+          console.log("Updating score from player data:", currentPlayer.score);
           setMyScore(currentPlayer.score);
         }
       }
     };
 
     const onAnswerResult = (payload) => {
-      console.log("Answer result received:", payload); // Debug log
+      console.log("Answer result received:", payload);
       setAnswerResult(payload || null);
       setHasAnswered(true);
 
-      // Update the player's score with the new total from the server
       if (payload && typeof payload.total_score === "number") {
-        console.log("Updating player score to:", payload.total_score); // Debug log
+        console.log("Updating player score to:", payload.total_score);
         setMyScore(payload.total_score);
       }
     };
+
     const onGameStarted = (payload) => {
-      console.log("Game started:", payload); // Debug log
+      console.log("Game started:", payload);
       setLoading(false);
       if (payload) {
         if (payload.lobby) setLobby(payload.lobby);
@@ -117,7 +111,6 @@ function Game({ socket, currentLobby }) {
       }
     };
 
-    // --- NUEVO: fin de ronda y preparación de nueva ronda ---
     const onRoundEnded = (payload) => {
       console.log("Round ended:", payload);
       setRoundResults(payload || null);
@@ -157,7 +150,6 @@ function Game({ socket, currentLobby }) {
     socket.on("lobby_updated", onLobbyUpdated);
     socket.on("answer_result", onAnswerResult);
     socket.on("game_started", onGameStarted);
-    // nuevos
     socket.on("round_ended", onRoundEnded);
     socket.on("player_ready_changed", onPlayerReadyChanged);
     socket.on("new_round_started", onNewRoundStarted);
@@ -168,21 +160,17 @@ function Game({ socket, currentLobby }) {
       socket.off("lobby_updated", onLobbyUpdated);
       socket.off("answer_result", onAnswerResult);
       socket.off("game_started", onGameStarted);
-      // nuevos
       socket.off("round_ended", onRoundEnded);
       socket.off("player_ready_changed", onPlayerReadyChanged);
       socket.off("new_round_started", onNewRoundStarted);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, question]);
+  }, [socket, question, mySocketId, lobby]);
 
   useEffect(() => {
     if (!question || !socket) return;
 
-    // Clear any existing timer
     clearInterval(timerRef.current);
 
-    // Create new timer
     const timerId = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
@@ -194,43 +182,48 @@ function Game({ socket, currentLobby }) {
       });
     }, 1000);
 
-    // Store the timer ID
     timerRef.current = timerId;
 
-    // Cleanup function
     return () => {
       clearInterval(timerId);
     };
-  }, [question, socket]); // Dependencies that trigger effect recreation
+  }, [question, socket]);
 
   const handleAnswerClick = (index) => {
     if (!socket || hasAnswered) return;
     setSelectedAnswer(index);
-    // Send the answer with the key 'answer_index' to match backend expectations
     socket.emit("submit_answer", { answer_index: index });
 
-    console.log("Answer submitted:", { answer_index: index }); // Debug log
+    console.log("Answer submitted:", { answer_index: index });
   };
 
   const handlePowerUsed = (powerType) => {
     if (!socket) return;
-    console.log("Using power:", powerType, "with score:", myScore); // Debug log
-    // El resultado se maneja vía evento 'power_used' (onPowerUsed)
+    console.log("Using power:", powerType, "with score:", myScore);
     socket.emit("use_power", {
       power_type: powerType,
-      current_points: myScore, // Enviamos el puntaje actual para validar el costo
+      current_points: myScore,
     });
   };
 
-  // --- NUEVO: acciones desde pantalla de resultados ---
   const handleReadyForNewRound = () => {
     if (!socket) return;
     socket.emit("ready_for_new_round");
   };
 
-  const handleBackToLobby = () => {
-    if (!socket) return;
-    socket.emit("back_to_lobby");
+  const handleBackToLobby = async () => {
+    const confirmed = await showConfirm({
+      title: "Volver al Lobby",
+      message:
+        "¿Estás seguro que deseas volver al lobby? Se finalizará la partida actual.",
+      confirmText: "Sí, volver",
+      cancelText: "Cancelar",
+      isDangerous: true,
+      onConfirm: () => {
+        if (!socket) return;
+        socket.emit("back_to_lobby");
+      },
+    });
   };
 
   const getTimerColor = () => {
@@ -239,9 +232,7 @@ function Game({ socket, currentLobby }) {
     return "#ff4444";
   };
 
-  // Pantalla de resultados al finalizar la ronda
   if (roundEnded && roundResults) {
-    // Si solo queda un jugador, mostrar solo el botón para volver al lobby
     if (roundResults.solo_player) {
       return (
         <div className="game-container">
@@ -260,10 +251,14 @@ function Game({ socket, currentLobby }) {
       );
     }
 
-    const totalNonHost = (lobby?.players || []).filter((p) => !p.is_host).length;
-    const readyNonHost = (lobby?.players || []).filter((p) => !p.is_host && p.ready).length;
+    const totalNonHost = (lobby?.players || []).filter(
+      (p) => !p.is_host
+    ).length;
+    const readyNonHost = (lobby?.players || []).filter(
+      (p) => !p.is_host && p.ready
+    ).length;
     const isSoloPlayer = (lobby?.players || []).length === 1;
-    
+
     return (
       <div className="game-container">
         <div className="results-screen">
@@ -296,7 +291,10 @@ function Game({ socket, currentLobby }) {
 
           <div className="results-actions">
             {!isSoloPlayer && (
-              <button className="btn-new-round" onClick={handleReadyForNewRound}>
+              <button
+                className="btn-new-round"
+                onClick={handleReadyForNewRound}
+              >
                 Listo para nueva ronda
               </button>
             )}
@@ -309,9 +307,13 @@ function Game({ socket, currentLobby }) {
 
           {!isSoloPlayer && (
             <div className="ready-waiting">
-              <div className="ready-counter">{readyNonHost}/{totalNonHost} listos</div>
+              <div className="ready-counter">
+                {readyNonHost}/{totalNonHost} listos
+              </div>
               <div className="spinner" />
-              <p className="waiting-host-message">Esperando jugadores listos...</p>
+              <p className="waiting-host-message">
+                Esperando jugadores listos...
+              </p>
             </div>
           )}
         </div>
@@ -504,7 +506,6 @@ function Game({ socket, currentLobby }) {
 
 export default Game;
 
-// helpers
 function getDifficultyColor(difficulty) {
   switch (difficulty) {
     case "easy":
