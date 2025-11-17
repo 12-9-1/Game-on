@@ -17,11 +17,15 @@ Juego multijugador de trivia en tiempo real con lobbys, ranking global, poderes 
 | Tecnologías                                                                                                       | Descripción                                                                                                  |
 | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)               | Biblioteca de JavaScript para crear interfaces de usuario interactivas y dinámicas.                          |
-| ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)                  | Herramienta de construcción rápida y moderna para proyectos web.                                             |
-| ![Css3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)                   | Lenguaje de estilos en cascada que controla la presentación visual del DOM                                   |
-| ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)             | Plataforma para desplegar aplicaciones web modernas con soporte para frontend y backend.                     |
-| ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)          | Base de datos NoSQL orientada a documentos, utilizada para almacenar la información de usuarios y productos. |
+| ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)             | Lenguaje utilizado para el backend del proyecto con frameworks como Flask o FastAPI.                         |
+| ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)          | Base de datos NoSQL orientada a documentos.                                                                  |
+| ![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socketdotio&logoColor=white)  | Librería para comunicación en tiempo real entre servidor y clientes mediante WebSockets.                     |
+| ![Css3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)                   | Lenguaje de estilos en cascada que controla la presentación visual del DOM.                                  |
+| ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)            | Plataforma para desplegar aplicaciones web modernas con soporte para frontend y backend.                     |
+| ![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)             | Plataforma utilizada para desplegar y alojar el backend en producción.                                       |
 | ![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=JSON%20web%20tokens&logoColor=white)      | Sistema de autenticación basado en tokens para proteger rutas y gestionar sesiones de usuario.               |
+| ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)                  | Herramienta de construcción rápida y moderna para proyectos web.                                             |
+| ![GSAP](https://img.shields.io/badge/GSAP-88CE02?style=for-the-badge&logo=greensock&logoColor=black)              | Librería de animaciones de alto rendimiento para crear transiciones fluidas e interactivas.                 |
 
 </div>
 
@@ -35,7 +39,7 @@ Ver Demo en Vivo: https://game-on-woad.vercel.app/
 
 </div>
 
-## Estructura del proyecto
+## 🧱 Estructura del proyecto
 ```
 Game-on/
 ├─ backend/
@@ -60,7 +64,7 @@ Game-on/
 └─ README.md              # Este documento
 ```
 
-## Funcionalidades clave
+## 🎯 Funcionalidades clave
 - Creación y unión a lobbys con host, capacidad y estado ready por jugador.
 - Inicio de juego cuando todos están listos (excepto host) y objetivo de puntos.
 - Rondas de preguntas con temporizador, explicación y puntuación por rapidez.
@@ -70,25 +74,25 @@ Game-on/
 - Autenticación JWT (registro/login) y persistencia de sesión.
 - Cada victoria suma para el Ranking Global
 
-## Variables de entorno
-### Backend (`backend/.env`)
+## 🔧 Variables de entorno
+### 🐍 Backend (`backend/.env`)
 - `MONGODB_URI` (ej. `mongodb://localhost:27017/`)
 - `JWT_SECRET`
 - `URL_FRONTEND` (ej. `http://localhost:5173`)
 - `PORT` (ej. `5000`)
 - `ALLOW_ALL_CORS` (`1/true/yes` para permitir todos los orígenes en desarrollo)
 
-### Frontend (`frontend/.env`)
+### 💻 Frontend (`frontend/.env`)
 - `VITE_URL_BACKEND` (ej. `http://localhost:5000`)
 - Nota: `Profile.jsx` usa `VITE_BACKEND_URL`. Para evitar confusiones, definir ambas apuntando al backend.
 
-## Puesta en marcha (local)
-### Requisitos
+## ▶️ Guía de puesta en marcha (local)
+### 📦 Requisitos
 - Node.js 18+
 - Python 3.10+
 - MongoDB en ejecución
 
-### Backend
+### 🐍 Backend
 1. `cd backend`
 2. Crear `.env` y configurar variables (ver arriba).
 3. Crear entorno virtual y dependencias:
@@ -97,7 +101,7 @@ Game-on/
    - Desarrollo: `python main.py`
    - Producción (eventlet/gunicorn): `gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:5000 wsgi:application`
 
-### Frontend
+### 💻 Frontend
 1. `cd frontend`
 2. `npm install`
 3. Crear `.env` con `VITE_URL_BACKEND` apuntando al backend.
@@ -105,7 +109,7 @@ Game-on/
 5. Build: `npm run build` y `npm run preview`
 
 
-## Flujo de juego
+## 🎮 Flujo de juego
 1. Crear/unirse a un lobby y marcar “listo”.
 2. El host inicia la partida → se genera la primera pregunta y se arranca el generador en segundo plano.
 3. Cada pregunta tiene tiempo límite, puntuación por rapidez, explicación y poderes disponibles.
@@ -113,20 +117,16 @@ Game-on/
 5. Si el ganador está autenticado, se incrementa su contador de partidas ganadas (ranking global).
 6. El host puede volver al lobby o iniciar una nueva ronda.
 
-## Seguridad y buenas prácticas
+## 🔐 Seguridad y buenas prácticas
 - JWT firmado con `SECRET_KEY`. En producción, usar secretos fuertes y almacenamiento seguro del token.
 - CORS restringido a orígenes confiables; en desarrollo puede habilitarse `ALLOW_ALL_CORS`.
 - Evitar exponer credenciales en el cliente; usar `.env` y despliegues seguros.
 
-## Pruebas
+## 🧪 Pruebas
 - Tests unitarios del sistema de poderes en `backend/test_powers.py`.
 - Ejecutar (modo simple):
   - `cd backend`
   - `python test_powers.py`
-
-## Despliegue
-- Frontend: Vercel (`vercel.json` realiza build y preview desde `frontend`).
-- Backend: Render: preparado para Eventlet + Gunicorn (`wsgi.py`, `start.sh`).
 
 ## 💬 Integrantes
 
@@ -141,6 +141,6 @@ Game-on/
   
 Desarrollado con ❤️. 
 <br/> Agradecimientos a nuestro profesor Ezequiel Muñoz. <br/>
-<a href="#-Battle-Quiz-Arena">⬆️ Volver arriba ⬆️</a>
+<a href="#-battle-quiz-arena">⬆️ Volver arriba ⬆️</a>
   
 <div/>
