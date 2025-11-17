@@ -243,6 +243,14 @@ def register_socket_events(socketio):
         else:
             # Si el juego está en curso y solo queda un jugador, ese jugador gana
             if lobby.get('status') == 'playing' and len(lobby['players']) == 1:
+                # Promover al único jugador restante como nuevo host
+                remaining_player = lobby['players'][0]
+                lobby['host'] = remaining_player.get('socket_id')
+                for p in lobby['players']:
+                    p['is_host'] = (p is remaining_player)
+
+                print(f"[HOST-REASSIGN] Unico jugador restante {remaining_player.get('name')} ({remaining_player.get('socket_id')}) ahora es host del lobby {lobby_id}")
+
                 print(f"Solo queda un jugador en lobby {lobby_id} tras leave_lobby, finalizando partida")
                 end_game(lobby_id, socketio)
             else:
@@ -532,6 +540,19 @@ def register_socket_events(socketio):
         
         lobby = lobbies[lobby_id]
         lobby['status'] = 'round_finished'
+
+        # Asegurar que haya un host válido: si el host actual ya no está
+        # entre los jugadores (por ejemplo, se desconectó antes),
+        # promover al primer jugador restante como nuevo host.
+        current_host_id = lobby.get('host')
+        socket_ids = [p.get('socket_id') for p in lobby['players']]
+        if current_host_id not in socket_ids and lobby['players']:
+            new_host = lobby['players'][0]
+            lobby['host'] = new_host.get('socket_id')
+            for player in lobby['players']:
+                player['is_host'] = player is new_host
+
+            print(f"[HOST-REASSIGN] end_game: nuevo host {new_host.get('name')} ({new_host.get('socket_id')}) en lobby {lobby_id}")
         
         sorted_players = sorted(
             lobby['players'],
@@ -832,11 +853,24 @@ def register_socket_events(socketio):
             return
         
         lobby = lobbies[lobby_id]
-        
-        # Verificar que sea el host
-        if lobby['host'] != sid:
+
+        # Verificar permisos: normalmente solo el host puede volver al lobby,
+        # pero si la partida ya terminó (round_finished) permitimos que
+        # cualquier jugador lo ejecute.
+        if lobby.get('status') != 'round_finished' and lobby['host'] != sid:
             emit('error', {'message': 'Solo el host puede volver al lobby'})
             return
+
+        # Si el host registrado ya no está entre los jugadores (por ejemplo,
+        # se fue antes), promover al jugador que ejecuta la acción como nuevo host.
+        socket_ids = [p.get('socket_id') for p in lobby['players']]
+        if lobby.get('host') not in socket_ids and sid in socket_ids:
+            lobby['host'] = sid
+            for player in lobby['players']:
+                player['is_host'] = (player.get('socket_id') == sid)
+
+            me = next((p for p in lobby['players'] if p.get('socket_id') == sid), None)
+            print(f"[HOST-REASSIGN] back_to_lobby: jugador {me.get('name') if me else sid} ({sid}) es ahora host del lobby {lobby_id}")
         
         # Cambiar estado a waiting
         lobby['status'] = 'waiting'

@@ -208,6 +208,16 @@ function Game({ socket, currentLobby }) {
       );
     };
 
+    const onPlayerAnswered = (payload) => {
+      if (!payload) return;
+      if (typeof payload.total_answered === "number") {
+        setPlayersAnswered(payload.total_answered);
+      }
+      if (typeof payload.total_players === "number") {
+        setTotalPlayers(payload.total_players);
+      }
+    };
+
     socket.on("new_question", onNewQuestion);
     socket.on("power_used", onPowerUsed);
     socket.on("power_error", onPowerError);
@@ -217,6 +227,7 @@ function Game({ socket, currentLobby }) {
     socket.on("round_ended", onRoundEnded);
     socket.on("player_ready_changed", onPlayerReadyChanged);
     socket.on("new_round_started", onNewRoundStarted);
+    socket.on("player_answered", onPlayerAnswered);
 
     return () => {
       socket.off("new_question", onNewQuestion);
@@ -228,6 +239,7 @@ function Game({ socket, currentLobby }) {
       socket.off("round_ended", onRoundEnded);
       socket.off("player_ready_changed", onPlayerReadyChanged);
       socket.off("new_round_started", onNewRoundStarted);
+      socket.off("player_answered", onPlayerAnswered);
     };
   }, [socket, question, mySocketId, lobby]);
 
@@ -337,6 +349,7 @@ function Game({ socket, currentLobby }) {
       (p) => !p.is_host && p.ready
     ).length;
     const isSoloPlayer = (lobby?.players || []).length === 1;
+    const isRoundFinished = lobby?.status === "round_finished";
 
     return (
       <div className="game-container">
@@ -369,7 +382,7 @@ function Game({ socket, currentLobby }) {
           </div>
 
           <div className="results-actions">
-            {!isSoloPlayer && (
+            {!isSoloPlayer && !isRoundFinished && (
               <button
                 className="btn-new-round"
                 onClick={handleReadyForNewRound}
@@ -377,7 +390,7 @@ function Game({ socket, currentLobby }) {
                 Listo para nueva ronda
               </button>
             )}
-            {lobby?.host === mySocketId && (
+            {(isRoundFinished || lobby?.host === mySocketId) && (
               <button className="btn-back-lobby" onClick={handleBackToLobby}>
                 Volver al lobby
               </button>
