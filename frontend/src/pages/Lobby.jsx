@@ -74,7 +74,7 @@ function Lobby({ lobby, socket }) {
 
       if (updatedPlayer) {
         if (updatedPlayer.ready) {
-          toast.success(`✅ ${updatedPlayer.name} está listo`, {
+          toast.success(`${updatedPlayer.name} está listo`, {
             autoClose: 2000,
           });
         } else {
@@ -127,7 +127,7 @@ function Lobby({ lobby, socket }) {
       socket.emit("toggle_ready");
 
       if (willBeReady) {
-        toast.success("✅ Marcado como listo", {
+        toast.success("Marcado como listo", {
           autoClose: 2000,
         });
       } else {
