@@ -73,7 +73,11 @@ class PowersManager:
         """Inicializa el gestor de poderes"""
         self.available_powers: List[Power] = []
         self.used_powers: List[Power] = []
+        # Tipos de poder usados en la ronda actual (solo 1 uso por poder por ronda)
+        self.used_power_types_this_round = set()
         self.player_points = 0
+        # Multiplicador aplicado cuando se paga con puntos (sobrecargo)
+        self.points_surcharge_multiplier = 1.5
 
     def generate_question_powers(self) -> List[Dict]:
         """
@@ -119,6 +123,7 @@ class PowersManager:
         if not power:
             return False, "Poder no disponible"
         
+        # Calcular coste real si se paga con puntos (se aplicará sobrecargo más adelante en use_power)
         if current_points < power.cost:
             return False, f"No tienes suficientes puntos. Necesitas {power.cost}, tienes {current_points}"
         
@@ -144,19 +149,35 @@ class PowersManager:
             p_type = PowerType(power_type)
         except ValueError:
             return False, {"error": "Poder no válido"}
-        
-        # Buscar el poder (ya no se marca como usado de forma global para permitir
-        # que múltiples jugadores usen el mismo tipo de poder en la misma pregunta)
+
+        # Verificar que el poder no haya sido usado ya en esta ronda (uso global por ronda)
+        if p_type.value in self.used_power_types_this_round:
+            return False, {"error": "Este poder ya fue usado en la ronda"}
+
+        # Buscar el poder
         power = next((p for p in self.available_powers if p.power_type == p_type), None)
-        
+        if not power:
+            return False, {"error": "Poder no disponible"}
+
+        # Aplicar sobrecargo si se paga con puntos (por defecto asumimos pago con puntos)
+        # Redondeamos al entero más cercano
+        surcharge_cost = int(round(power.cost * self.points_surcharge_multiplier))
+
+        if current_points < surcharge_cost:
+            return False, {"error": f"No tienes suficientes puntos. Necesitas {surcharge_cost}, tienes {current_points}"}
+
+        # Marcar como usado para la ronda
+        self.used_power_types_this_round.add(p_type.value)
+
         # Aplicar efecto del poder
         effect_data = self._apply_power_effect(p_type, current_points)
-        
+
         return True, {
             "success": True,
             "power_type": power_type,
-            "cost": power.cost,
-            "new_points": current_points - power.cost,
+            # Devolvemos el coste real que se ha cobrado (con sobrecargo)
+            "cost": surcharge_cost,
+            "new_points": current_points - surcharge_cost,
             "effect": effect_data
         }
 
@@ -226,6 +247,13 @@ class PowersManager:
 
     def reset_for_new_question(self):
         """Reinicia el gestor para una nueva pregunta"""
+        self.available_powers = []
+        self.used_powers = []
+
+    def reset_for_new_round(self):
+        """Resetea los estados que deberían limpiarse al comenzar una nueva ronda (uso global por ronda)"""
+        self.used_power_types_this_round = set()
+        # También reiniciamos la lista de poderes disponibles
         self.available_powers = []
         self.used_powers = []
 

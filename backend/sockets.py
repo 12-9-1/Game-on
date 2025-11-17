@@ -351,9 +351,17 @@ def register_socket_events(socketio):
         # Inicializar puntuaciones
         for player in lobby['players']:
             player['score'] = 0
+            # Estado para poderes activos por jugador (ej. double_points)
+            player['active_powers'] = {}
         
         # Inicializar cola de preguntas
         question_queue[lobby_id] = []
+
+        # Inicializar/Resetear gestor de poderes para la nueva ronda
+        if lobby_id in powers_managers:
+            powers_managers[lobby_id].reset_for_new_round()
+        else:
+            powers_managers[lobby_id] = PowersManager()
         
         # Generar primera pregunta inmediatamente
         print(f'Generando primera pregunta para el lobby {lobby_id}...')
@@ -596,12 +604,26 @@ def register_socket_events(socketio):
         player_score = 0
         for player in lobby['players']:
             if player['socket_id'] == sid:
+                # Aplicar efectos activos (ej. double_points)
+                active = player.get('active_powers', {})
+                if is_correct and 'double_points' in active:
+                    try:
+                        multiplier = int(active['double_points'].get('multiplier', 2))
+                    except Exception:
+                        multiplier = 2
+                    points = points * multiplier
+                    # Consumir el poder de doble puntos tras usarlo
+                    try:
+                        del player['active_powers']['double_points']
+                    except Exception:
+                        pass
+
                 player['score'] = player.get('score', 0) + points
                 player_name = player['name']
                 player_score = player['score']
                 break
         
-        # Guardar respuesta
+        # Guardar respuesta (puntos finales tras aplicar poderes)
         player_answers[lobby_id]['answers'][sid] = {
             'answer_index': answer_index,
             'is_correct': is_correct,
@@ -764,6 +786,13 @@ def register_socket_events(socketio):
             # Resetear puntuaciones para nueva ronda
             for player in lobby['players']:
                 player['score'] = 0
+                player['active_powers'] = {}
+
+            # Resetear gestor de poderes para la nueva ronda (uso único por poder por ronda)
+            if lobby_id in powers_managers:
+                powers_managers[lobby_id].reset_for_new_round()
+            else:
+                powers_managers[lobby_id] = PowersManager()
 
             # Reiniciar cola y generador de preguntas
             question_queue[lobby_id] = []
@@ -899,6 +928,14 @@ def register_socket_events(socketio):
             # Actualizar puntuación del jugador en el lobby con los nuevos puntos
             player['score'] = max(0, result['new_points'])
 
+            # Registrar el poder como activo para el jugador (se consumirá al responder)
+            if 'active_powers' not in player:
+                player['active_powers'] = {}
+            try:
+                player['active_powers'][power_type] = effect
+            except Exception:
+                pass
+
             # Payload de resultado común
             response_payload = {
                 'success': True,
@@ -979,4 +1016,4 @@ def register_socket_events(socketio):
         emit('lobby_updated', {
             'lobby': lobby
         })
-        
+
