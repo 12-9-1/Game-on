@@ -12,6 +12,7 @@
 .home-header h1 {
   font-size: 3rem;
   margin-bottom: 0.5rem;
+  margin-top: 0.7rem;
   background: linear-gradient(135deg, var(--gold-400), var(--gold-600));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -23,12 +24,10 @@
   gap: 0.5rem;
 }
 
-/* Icono del header (arcade) */
 .header-icon {
   font-size: 3rem;
   color: var(--gold-400);
   filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.3));
-  /* Mantener el color del icono visible */
   -webkit-text-fill-color: currentColor;
 }
 
