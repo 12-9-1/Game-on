@@ -328,7 +328,7 @@ const Button = styled.button`
 
 const RankingButton = styled(Button)`
   background-color: transparent;
-  color: var(--accent-light);
+  color: var(--fffffff);
   border: 1px solid var(--accent-primary);
 
   &:hover {
