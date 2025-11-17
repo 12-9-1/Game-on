@@ -17,12 +17,7 @@ function PowersPanel({ powers, playerPoints, onPowerUsed, disabled = false }) {
   const handlePowerClick = (power) => {
     // ⭐ Verificación más estricta
     if (disabled || power.is_used) {
-      console.log(
-        "Poder no disponible:",
-        power.power_type,
-        "is_used:",
-        power.is_used
-      );
+      setSelectedPower(null);
       return;
     }
 

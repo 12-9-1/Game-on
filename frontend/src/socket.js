@@ -3,7 +3,6 @@ import { io } from "socket.io-client";
 
 const BACKEND_URL = import.meta.env.VITE_URL_BACKEND || 'http://localhost:5000';
 
-console.log('[socket] connecting to backend at', BACKEND_URL);
 export const socket = io(BACKEND_URL, {
   transports: ['polling'],
   reconnection: true,
