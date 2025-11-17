@@ -10,6 +10,9 @@ const Navbar = ({ onLeaveGame }) => {
   const location = useLocation();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Protección extra: solo el botón y el overlay pueden abrir/cerrar el menú
+  const handleMenuToggle = () => setIsMenuOpen((prev) => !prev);
+  const handleMenuClose = () => setIsMenuOpen(false);
 
   useEffect(() => {
     // Aplicar el tema guardado al cargar
@@ -57,7 +60,7 @@ const Navbar = ({ onLeaveGame }) => {
 
   return (
     <>
-      {isMenuOpen && <Overlay onClick={() => setIsMenuOpen(false)} />}
+      {isMenuOpen && <Overlay onClick={handleMenuClose} />}
       <Nav>
         <NavBrand>
           <StyledNavLogo href="/" aria-label="Battle Quiz Arena">
@@ -68,55 +71,50 @@ const Navbar = ({ onLeaveGame }) => {
             </LogoContainer>
           </StyledNavLogo>
         </NavBrand>
-        
-        <HamburgerButton onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
+        <HamburgerButton onClick={handleMenuToggle} aria-label="Toggle menu">
           {isMenuOpen ? <FaTimes /> : <FaBars />}
         </HamburgerButton>
-
         <NavActions $isOpen={isMenuOpen}>
-        {showBackButton && (
-          <BackButton onClick={handleBack}>
-            Volver
-          </BackButton>
-        )}
-        <ThemeToggle
-          onClick={toggleTheme}
-          aria-label="Cambiar tema"
-          title="Cambiar tema"
-        >
-          {theme === "light" ? <FaMoon /> : <FaSun />}
-        </ThemeToggle>
-        
-        {!isInGame && (
-          <RankingButton
-            onClick={() => handleNavigate("/ranking")}
-            title="Ver ranking global"
+          {showBackButton && (
+            <BackButton onClick={handleBack}>
+              Volver
+            </BackButton>
+          )}
+          <ThemeToggle
+            onClick={toggleTheme}
+            aria-label="Cambiar tema"
+            title="Cambiar tema"
           >
-            <FaTrophy /> Ranking
-          </RankingButton>
-        )}
-
-        {isInGame && (
-          <LogoutButton onClick={handleGameExit} title="Salir del juego">
-            <FaSignOutAlt /> Salir del juego
-          </LogoutButton>
-        )}
-
-        {isAuthenticated && !isInGame && (
-          <>
-            <ProfileButton
-              onClick={() => handleNavigate("/profile")}
-              title="Ver perfil"
+            {theme === "light" ? <FaMoon /> : <FaSun />}
+          </ThemeToggle>
+          {!isInGame && (
+            <RankingButton
+              onClick={() => handleNavigate("/ranking")}
+              title="Ver ranking global"
             >
-              <FaUser /> {user?.name || "Perfil"}
-            </ProfileButton>
-            <LogoutButton onClick={handleSessionLogout} title="Cerrar sesión">
-              <FaSignOutAlt /> Cerrar sesión
+              <FaTrophy /> Ranking
+            </RankingButton>
+          )}
+          {isInGame && (
+            <LogoutButton onClick={handleGameExit} title="Salir del juego">
+              <FaSignOutAlt /> Salir del juego
             </LogoutButton>
-          </>
-        )}
-      </NavActions>
-    </Nav>
+          )}
+          {isAuthenticated && !isInGame && (
+            <>
+              <ProfileButton
+                onClick={() => handleNavigate("/profile")}
+                title="Ver perfil"
+              >
+                <FaUser /> {user?.name || "Perfil"}
+              </ProfileButton>
+              <LogoutButton onClick={handleSessionLogout} title="Cerrar sesión">
+                <FaSignOutAlt /> Cerrar sesión
+              </LogoutButton>
+            </>
+          )}
+        </NavActions>
+      </Nav>
     </>
   );
 };
@@ -239,22 +237,23 @@ const NavActions = styled.div`
   align-items: center;
 
   @media (max-width: 768px) {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 280px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100vw;
     background-color: var(--bg-secondary);
     backdrop-filter: blur(20px);
     flex-direction: column;
-    padding: 2rem 1rem;
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
-    transform: translateX(${props => props.$isOpen ? '0' : '100%'});
-    transition: transform 0.3s ease-in-out;
-    z-index: 999;
-    overflow-y: auto;
+    padding: 1.5rem 1rem 2rem 1rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    max-height: ${props => props.$isOpen ? '500px' : '0'};
+    overflow: hidden;
     gap: 1.5rem;
     align-items: stretch;
+    visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
+    pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
+    transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), visibility 0.3s;
+    z-index: 999;
   }
 `;
 
