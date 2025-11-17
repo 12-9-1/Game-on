@@ -100,7 +100,6 @@ function Lobby({ lobby, socket }) {
     };
 
     const handleGameStarted = (data) => {
-      console.log("Juego iniciado, generando preguntas...");
       setIsGeneratingQuestions(true);
 
       toast.success("🚀 ¡El juego está comenzando!", {

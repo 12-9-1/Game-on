@@ -53,13 +53,9 @@ function Game({ socket, currentLobby }) {
 
       setLoading(false);
       setTimeLeft(payload.time_limit || 30);
-
-      console.log("New question received:", payload);
-      console.log("Used powers in game:", Array.from(usedPowersInGame.current));
     };
 
     const onPlayerLeft = (payload) => {
-      console.log("Player left (game screen):", payload);
       const name =
         payload?.player_name ||
         payload?.player?.name ||
@@ -86,8 +82,6 @@ function Game({ socket, currentLobby }) {
       if (!isMe) return;
       if (!payload.effect) return;
       const eff = payload.effect;
-
-      console.log("Power used confirmation:", payload);
 
       if (payload.power_type) {
         usedPowersInGame.current.add(payload.power_type);
@@ -134,39 +128,32 @@ function Game({ socket, currentLobby }) {
     };
 
     const onLobbyUpdated = (payload) => {
-      console.log("Lobby updated:", payload);
       setLobby(payload.lobby || lobby);
 
       if (payload.my_score != null) {
-        console.log("Updating score from lobby update:", payload.my_score);
         setMyScore(payload.my_score);
       } else if (payload.lobby?.players && mySocketId) {
         const currentPlayer = payload.lobby.players.find(
           (p) => p.socket_id === mySocketId
         );
         if (currentPlayer && currentPlayer.score !== undefined) {
-          console.log("Updating score from player data:", currentPlayer.score);
           setMyScore(currentPlayer.score);
         }
       }
     };
 
     const onAnswerResult = (payload) => {
-      console.log("Answer result received:", payload);
       setAnswerResult(payload || null);
       setHasAnswered(true);
 
       if (payload && typeof payload.total_score === "number") {
-        console.log("Updating player score to:", payload.total_score);
         setMyScore(payload.total_score);
       }
     };
 
     const onGameStarted = (payload) => {
-      console.log("Game started:", payload);
-      // ⭐ NUEVO: Resetear poderes usados al iniciar nueva partida
       usedPowersInGame.current.clear();
-      console.log("Powers reset for new game");
+
 
       setLoading(false);
       if (payload) {
@@ -176,7 +163,6 @@ function Game({ socket, currentLobby }) {
     };
 
     const onRoundEnded = (payload) => {
-      console.log("Round ended:", payload);
       setRoundResults(payload || null);
       setRoundEnded(true);
       setQuestion(null);
@@ -184,15 +170,9 @@ function Game({ socket, currentLobby }) {
       setAnswerResult(null);
       setTimeLeft(0);
       clearInterval(timerRef.current);
-
-      console.log(
-        "Round ended - Powers still used:",
-        Array.from(usedPowersInGame.current)
-      );
     };
 
     const onPlayerReadyChanged = (payload) => {
-      console.log("Player ready changed:", payload);
       setLobby(payload.lobby || lobby);
       if (payload.lobby?.players) {
         setPlayersReady(
@@ -207,19 +187,13 @@ function Game({ socket, currentLobby }) {
     };
 
     const onNewRoundStarted = (payload) => {
-      console.log("New round started:", payload);
       setRoundEnded(false);
       setRoundResults(null);
       setLoading(false);
-      // Resetear poderes usados al comenzar una nueva ronda
-      usedPowersInGame.current.clear();
-      console.log("Powers reset for new round");
-      if (payload?.lobby) setLobby(payload.lobby);
 
-      console.log(
-        "New round - Powers still used:",
-        Array.from(usedPowersInGame.current)
-      );
+      usedPowersInGame.current.clear();
+
+      if (payload?.lobby) setLobby(payload.lobby);
     };
 
     const onPlayerAnswered = (payload) => {
@@ -287,7 +261,6 @@ function Game({ socket, currentLobby }) {
     setSelectedAnswer(index);
     socket.emit("submit_answer", { answer_index: index });
 
-    console.log("Answer submitted:", { answer_index: index });
   };
 
   const handlePowerUsed = (powerType) => {
@@ -298,7 +271,6 @@ function Game({ socket, currentLobby }) {
       return;
     }
 
-    console.log("Using power:", powerType, "with score:", myScore);
     usedPowersInGame.current.add(powerType);
     setPowers((prevPowers) =>
       prevPowers.map((p) =>

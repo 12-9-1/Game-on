@@ -52,10 +52,7 @@ const AppContent = ({ socketConnected }) => {
   useEffect(() => {
     if (!socket || !socketConnected) return;
 
-    console.log("Configurando listeners de Socket.IO...");
-
     socket.on("connected", (data) => {
-      console.log(data.message);
     });
 
     socket.on("error", (data) => {
@@ -76,7 +73,6 @@ const AppContent = ({ socketConnected }) => {
       socket.emit("get_lobbies");
     });
     socket.on("lobby_closed", (data) => {
-      console.log("Lobby cerrado:", data.message);
       setCurrentLobby(null);
       setGameActive(false);
       setError(data.message);
@@ -94,7 +90,6 @@ const AppContent = ({ socketConnected }) => {
 
     // Cleanup: solo remover listeners
     return () => {
-      console.log("Limpiando listeners de Socket.IO...");
       socket.off("connected");
       socket.off("error");
       socket.off("lobbies_list");
@@ -216,7 +211,6 @@ function App() {
   });
 
   const handleSplashComplete = () => {
-    console.log("Splash screen completado");
     sessionStorage.setItem("hasSeenSplash", "true");
     setShowSplash(false);
   };
@@ -225,16 +219,12 @@ function App() {
   useEffect(() => {
     if (!socket) return;
 
-    console.log("Iniciando conexión Socket.IO...");
-
     const handleConnect = () => {
-      console.log("✅ Conectado al servidor");
       setSocketConnected(true);
       socket.emit("get_lobbies");
     };
 
     const handleDisconnect = () => {
-      console.log("❌ Desconectado del servidor");
       setSocketConnected(false);
     };
 
@@ -249,7 +239,6 @@ function App() {
 
     // Cleanup: solo remover listeners
     return () => {
-      console.log("Limpiando listeners principales de Socket.IO...");
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
     };
