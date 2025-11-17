@@ -407,12 +407,12 @@ const Button = styled.button`
 
 const RankingButton = styled(Button)`
   background-color: transparent;
-  color: var(--accent-light);
+  color: var(--fffffff);
   border: 1px solid var(--accent-primary);
 
   &:hover {
-    background-color: var(--accent-primary);
-    color: var(--bg-primary);
+    background-color: var(--teal-lighter);
+    color: var(--accent-light);
   }
 `;
 
