@@ -1,6 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import {
+  FaGamepad,
+  FaCopy,
+  FaCrown,
+  FaUsers,
+  FaBullseye,
+  FaLink,
+  FaInfoCircle,
+  FaCheckCircle,
+  FaHourglassHalf,
+  FaSignOutAlt,
+  FaRocket,
+} from "react-icons/fa";
 import ConfirmModal from "../components/Modals/ConfirmModal";
 import "./Lobby.css";
 
@@ -206,7 +219,7 @@ function Lobby({ lobby, socket }) {
     <div className="lobby-container">
       <ConfirmModal
         isOpen={showConfirmModal}
-        title="⚠️ Abandonar Lobby"
+        title="Abandonar Lobby"
         message="¿Estás seguro de que quieres abandonar el lobby?"
         confirmText="Sí, abandonar"
         cancelText="Volver"
@@ -217,13 +230,15 @@ function Lobby({ lobby, socket }) {
 
       <div className="lobby-header">
         <div className="lobby-title-section">
-          <h1>🎮 Lobby #{currentLobby?.id}</h1>
+          <h1>
+            <FaGamepad className="lobby-title-icon" /> Lobby #{currentLobby?.id}
+          </h1>
           <button className="btn-copy-code" onClick={copyLobbyCode}>
-            📋 Copiar Código
+            <FaCopy className="btn-icon" /> Copiar Código
           </button>
         </div>
         <button className="btn-leave" onClick={handleLeaveLobbyClick}>
-          ← Salir
+          <FaSignOutAlt className="btn-icon" /> Salir
         </button>
       </div>
 
@@ -237,7 +252,7 @@ function Lobby({ lobby, socket }) {
           </div>
 
           <div className="players-grid">
-            {currentLobby?.players.map((player, index) => (
+            {currentLobby?.players.map((player) => (
               <div
                 key={player.socket_id}
                 className={`player-card ${
@@ -254,13 +269,19 @@ function Lobby({ lobby, socket }) {
                   </div>
                   <div className="player-badges">
                     {player.is_host && (
-                      <span className="badge badge-host">👑 Host</span>
+                      <span className="badge badge-host">
+                        <FaCrown className="badge-icon" /> Host
+                      </span>
                     )}
                     {player.ready && !player.is_host && (
-                      <span className="badge badge-ready">✓ Listo</span>
+                      <span className="badge badge-ready">
+                        <FaCheckCircle className="badge-icon" /> Listo
+                      </span>
                     )}
                     {!player.ready && !player.is_host && (
-                      <span className="badge badge-waiting">⏳ Esperando</span>
+                      <span className="badge badge-waiting">
+                        <FaHourglassHalf className="badge-icon" /> Esperando
+                      </span>
                     )}
                   </div>
                 </div>
@@ -291,7 +312,7 @@ function Lobby({ lobby, socket }) {
               }`}
               onClick={handleToggleReady}
             >
-              {myPlayer?.ready ? "✓ Listo" : "⏳ Marcar como Listo"}
+              {myPlayer?.ready ? "Listo" : "Marcar como Listo"}
             </button>
           )}
 
@@ -312,7 +333,9 @@ function Lobby({ lobby, socket }) {
                     Generando preguntas...
                   </>
                 ) : (
-                  <>🚀 Iniciar Juego</>
+                  <>
+                    <FaRocket className="btn-icon" /> Iniciar Juego
+                  </>
                 )}
               </button>
               {!allPlayersReady && currentLobby?.players.length >= 2 && (
@@ -322,7 +345,7 @@ function Lobby({ lobby, socket }) {
               )}
               {currentLobby?.players.length < 2 && (
                 <p className="warning-text">
-                  ⚠️ Se necesitan al menos 2 jugadores
+                  Se necesitan al menos 2 jugadores
                 </p>
               )}
             </div>
@@ -330,17 +353,23 @@ function Lobby({ lobby, socket }) {
         </div>
 
         <div className="lobby-info-panel">
-          <h3>ℹ️ Información</h3>
+          <h3>
+            <FaInfoCircle className="info-title-icon" /> Información
+          </h3>
           <div className="info-grid">
             <div className="info-box">
-              <span className="info-icon">🎯</span>
+              <span className="info-icon">
+                <FaBullseye />
+              </span>
               <div>
                 <div className="info-title">Estado</div>
                 <div className="info-value">Esperando jugadores</div>
               </div>
             </div>
             <div className="info-box">
-              <span className="info-icon">👥</span>
+              <span className="info-icon">
+                <FaUsers />
+              </span>
               <div>
                 <div className="info-title">Capacidad</div>
                 <div className="info-value">
@@ -349,7 +378,9 @@ function Lobby({ lobby, socket }) {
               </div>
             </div>
             <div className="info-box">
-              <span className="info-icon">🔗</span>
+              <span className="info-icon">
+                <FaLink />
+              </span>
               <div>
                 <div className="info-title">Código</div>
                 <div className="info-value">{currentLobby?.id}</div>

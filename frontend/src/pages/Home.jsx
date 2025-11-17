@@ -13,7 +13,7 @@ import { TiPlus } from "react-icons/ti";
 import { LuPaperclip } from "react-icons/lu";
 import { MdMeetingRoom } from "react-icons/md";
 import { IoMdLogIn } from "react-icons/io";
-import { FaUserPlus } from "react-icons/fa";
+import { FaUserPlus, FaUserCircle } from "react-icons/fa";
 
 import "./Home.css";
 
@@ -44,6 +44,9 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   useEffect(() => {
     if (user && user.name) {
       setPlayerName(user.name);
+      setActiveTab("autenticado");
+    } else {
+      setActiveTab("anonimo");
     }
   }, [user]);
 
@@ -131,8 +134,11 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
     setJoinErrors({});
     const name = user ? user.name || user.email : playerName;
 
+    // Normalizar código: sin espacios y en minúsculas
+    const normalizedLobbyId = joinLobbyId.trim().toLowerCase();
+
     onJoinLobby({
-      lobby_id: joinLobbyId,
+      lobby_id: normalizedLobbyId,
       player_name: name,
       public_id: user?.public_id || null,
     });
@@ -194,15 +200,19 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
         <p className="subtitle">Únete a una partida o crea la tuya</p>
       </div>
 
-      {/* Tabs de navegación */}
+      {/* Tabs de navegación: mostrar Anónimo solo si no hay usuario */}
       <div className="tabs-container">
         <div className="tabs-header">
-          <button
-            className={`tab-button ${activeTab === "anonimo" ? "active" : ""}`}
-            onClick={() => handleTabChange("anonimo")}
-          >
-            Anónimo
-          </button>
+          {!user && (
+            <button
+              className={`tab-button ${
+                activeTab === "anonimo" ? "active" : ""
+              }`}
+              onClick={() => handleTabChange("anonimo")}
+            >
+              Anónimo
+            </button>
+          )}
           <button
             className={`tab-button ${
               activeTab === "autenticado" ? "active" : ""
@@ -213,29 +223,24 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
           </button>
         </div>
 
-        {/* Contenido de la pestaña Anónimo */}
-        {activeTab === "anonimo" && (
+        {/* Contenido de la pestaña Anónimo (solo si no está autenticado) */}
+        {!user && activeTab === "anonimo" && (
           <div className="tab-content">
             <div className="anon-card">
-              <p>Empieza a jugar de forma anónima</p>
+              <p className="anon-title">Empieza a jugar de forma anónima</p>
+
+              <div className="anon-avatar-wrapper">
+                <FaUserCircle className="anon-avatar-icon" />
+              </div>
+
               <div className="avatar-section">
-                <div className="character-avatar">
-                  <span>👤</span>
-                  <button
-                    className="refresh-button"
-                    onClick={() =>
-                      toast.info("Función próximamente disponible")
-                    }
-                  >
-                    🔄
-                  </button>
-                </div>
                 <div className="input-section">
                   <input
                     type="text"
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                     placeholder="Ingresa tu nombre"
+                    disabled={!!user}
                     className="name-input"
                   />
                 </div>
@@ -314,7 +319,9 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                         type="text"
                         value={joinLobbyId}
                         onChange={(e) => {
-                          setJoinLobbyId(e.target.value.toUpperCase());
+                          // Mantener el valor tal cual lo escribe el usuario;
+                          // se normaliza al enviar.
+                          setJoinLobbyId(e.target.value);
                           if (joinErrors.lobbyId) {
                             setJoinErrors({ ...joinErrors, lobbyId: "" });
                           }
@@ -355,21 +362,13 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
           <div className="tab-content">
             {user ? (
               <div className="user-info">
-                <div className="welcome-message">
-                  ¡Bienvenido,{" "}
-                  <span className="username">{user.name || user.email}</span>!
-                </div>
-                <div className="avatar-section">
-                  <div className="character-avatar">
-                    <span>👤</span>
-                    <button
-                      className="refresh-button"
-                      onClick={() =>
-                        toast.info("Función próximamente disponible")
-                      }
-                    >
-                      🔄
-                    </button>
+                <div className="user-header">
+                  <div className="user-avatar">
+                    <FaUserCircle className="user-avatar-icon" />
+                  </div>
+                  <div className="welcome-message">
+                    ¡Bienvenido,{" "}
+                    <span className="username">{user.name || user.email}</span>!
                   </div>
                 </div>
 
@@ -448,7 +447,9 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                           type="text"
                           value={joinLobbyId}
                           onChange={(e) => {
-                            setJoinLobbyId(e.target.value.toUpperCase());
+                            // Mantener el valor tal cual lo escribe el usuario;
+                            // se normaliza al enviar.
+                            setJoinLobbyId(e.target.value);
                             if (joinErrors.lobbyId) {
                               setJoinErrors({ ...joinErrors, lobbyId: "" });
                             }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useConfirmModal } from "../contexts/ConfirmModalContext";
+import { toast } from "react-toastify";
 import PowersPanel from "../components/PowersPanel";
 import GameSidebar from "../components/GameSidebar";
 import "./Game.css";
@@ -55,6 +56,16 @@ function Game({ socket, currentLobby }) {
 
       console.log("New question received:", payload);
       console.log("Used powers in game:", Array.from(usedPowersInGame.current));
+    };
+
+    const onPlayerLeft = (payload) => {
+      console.log("Player left (game screen):", payload);
+      const name =
+        payload?.player_name ||
+        payload?.player?.name ||
+        payload?.message?.replace(" ha salido del lobby", "") ||
+        "Un jugador";
+      toast.info(`${name} ha salido del lobby`);
     };
 
     const onPowerUsed = (payload) => {
@@ -200,6 +211,9 @@ function Game({ socket, currentLobby }) {
       setRoundEnded(false);
       setRoundResults(null);
       setLoading(false);
+      // Resetear poderes usados al comenzar una nueva ronda
+      usedPowersInGame.current.clear();
+      console.log("Powers reset for new round");
       if (payload?.lobby) setLobby(payload.lobby);
 
       console.log(
@@ -228,6 +242,7 @@ function Game({ socket, currentLobby }) {
     socket.on("player_ready_changed", onPlayerReadyChanged);
     socket.on("new_round_started", onNewRoundStarted);
     socket.on("player_answered", onPlayerAnswered);
+    socket.on("player_left", onPlayerLeft);
 
     return () => {
       socket.off("new_question", onNewQuestion);
@@ -240,6 +255,7 @@ function Game({ socket, currentLobby }) {
       socket.off("player_ready_changed", onPlayerReadyChanged);
       socket.off("new_round_started", onNewRoundStarted);
       socket.off("player_answered", onPlayerAnswered);
+      socket.off("player_left", onPlayerLeft);
     };
   }, [socket, question, mySocketId, lobby]);
 
@@ -342,13 +358,11 @@ function Game({ socket, currentLobby }) {
       );
     }
 
-    const totalNonHost = (lobby?.players || []).filter(
-      (p) => !p.is_host
-    ).length;
-    const readyNonHost = (lobby?.players || []).filter(
-      (p) => !p.is_host && p.ready
-    ).length;
-    const isSoloPlayer = (lobby?.players || []).length === 1;
+    const totalPlayersInLobby = (lobby?.players || []).length;
+    const readyPlayersInLobby = (lobby?.players || []).filter((p) => p.ready)
+      .length;
+    const isSoloPlayer = totalPlayersInLobby === 1;
+    const isHost = lobby?.host === mySocketId;
     const isRoundFinished = lobby?.status === "round_finished";
 
     return (
@@ -382,7 +396,7 @@ function Game({ socket, currentLobby }) {
           </div>
 
           <div className="results-actions">
-            {!isSoloPlayer && !isRoundFinished && (
+            {!isSoloPlayer && (
               <button
                 className="btn-new-round"
                 onClick={handleReadyForNewRound}
@@ -390,7 +404,7 @@ function Game({ socket, currentLobby }) {
                 Listo para nueva ronda
               </button>
             )}
-            {(isRoundFinished || lobby?.host === mySocketId) && (
+            {(isSoloPlayer || isHost) && (
               <button className="btn-back-lobby" onClick={handleBackToLobby}>
                 Volver al lobby
               </button>
@@ -400,7 +414,7 @@ function Game({ socket, currentLobby }) {
           {!isSoloPlayer && (
             <div className="ready-waiting">
               <div className="ready-counter">
-                {readyNonHost}/{totalNonHost} listos
+                {readyPlayersInLobby}/{totalPlayersInLobby} listos
               </div>
               <div className="spinner" />
               <p className="waiting-host-message">

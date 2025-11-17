@@ -97,6 +97,10 @@ def register_socket_events(socketio):
                             'message': f'{player_name} ha salido del lobby',
                             'lobby': lobby
                         }, room=lobby_id)
+                        # Enviar también lobby_updated para que todos los clientes actualicen host/estado
+                        emit('lobby_updated', {
+                            'lobby': lobby
+                        }, room=lobby_id)
                 
             del user_lobbies[sid]
     
@@ -268,6 +272,11 @@ def register_socket_events(socketio):
                     'player_name': player['name'] if player else 'Jugador',
                     'player_count': len(lobby['players'])
                 }, room=lobby_id)
+
+                # Enviar también lobby_updated para que todos los clientes actualicen host/estado
+                emit('lobby_updated', {
+                    'lobby': lobby
+                }, room=lobby_id)
         
         emit('lobby_left', {'message': 'Saliste del lobby'})
     
@@ -317,15 +326,8 @@ def register_socket_events(socketio):
             while lobby_id in lobbies and lobbies[lobby_id]['status'] == 'playing':
                 if lobby_id in question_queue and len(question_queue[lobby_id]) < 2:
                     print(f'Generando pregunta para cola del lobby {lobby_id}...')
-                    # Usar fallback local para no bloquear
-                    question = {
-                        'question': '¿Cuál es la capital de Francia?',
-                        'options': ['Londres', 'Berlín', 'París', 'Madrid'],
-                        'correct_answer': 2,
-                        'difficulty': 'easy',
-                        'category': 'Geografía',
-                        'explanation': 'La capital de Francia es París'
-                    }
+                    # Obtener pregunta real desde el servicio de trivia (OpenTDB)
+                    question = generate_single_question_sync()
                     if question:
                         question_queue[lobby_id].append(question)
                         print(f'Pregunta agregada a cola. Total en cola: {len(question_queue[lobby_id])}')
@@ -540,6 +542,10 @@ def register_socket_events(socketio):
         
         lobby = lobbies[lobby_id]
         lobby['status'] = 'round_finished'
+
+        # Resetear estado ready de todos los jugadores para la pantalla de fin de ronda
+        for player in lobby['players']:
+            player['ready'] = False
 
         # Asegurar que haya un host válido: si el host actual ya no está
         # entre los jugadores (por ejemplo, se desconectó antes),
@@ -783,10 +789,11 @@ def register_socket_events(socketio):
             if player['socket_id'] == sid:
                 player['ready'] = True
                 break
-        
+
         emit('player_ready_changed', {'lobby': lobby}, room=lobby_id)
-        
-        all_ready = all(p['ready'] or p['is_host'] for p in lobby['players'])
+
+        # Ahora TODOS los jugadores (incluido el host) deben estar listos
+        all_ready = all(p['ready'] for p in lobby['players'])
         
         if all_ready:
             lobby['status'] = 'playing'
@@ -802,20 +809,34 @@ def register_socket_events(socketio):
             else:
                 game_powers_managers[lobby_id] = GamePowersManager()
 
-            # Reiniciar cola
+            # Reiniciar cola y generador continuo
             question_queue[lobby_id] = []
             start_question_generator(lobby_id)
 
-            # Usar pregunta de fallback inmediata para iniciar nueva ronda sin bloqueo
-            print(f'Iniciando nueva ronda con pregunta de fallback en lobby {lobby_id}...')
-            first_question = {
-                'question': '¿Cuánto es 3 × 3?',
-                'options': ['6', '9', '8', '12'],
-                'correct_answer': 1,
-                'difficulty': 'easy',
-                'category': 'Matemáticas',
-                'explanation': '3 × 3 = 9'
-            }
+            # Generar primera pregunta de la nueva ronda usando el servicio normal
+            print(f'Iniciando nueva ronda en lobby {lobby_id}...')
+            first_question = None
+            max_attempts = 3
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    print(f'  [new_round] Intento {attempt} de {max_attempts}...')
+                    first_question = generate_single_question_sync()
+                    if first_question:
+                        break
+                except Exception as e:
+                    print(f'  [new_round] Error: {e}')
+                time.sleep(1)
+
+            if not first_question:
+                print(f'⚠️ [new_round] Usando pregunta de fallback')
+                first_question = {
+                    'question': '¿Cuánto es 2 + 2?',
+                    'options': ['1', '2', '3', '4'],
+                    'correct_answer': 3,
+                    'difficulty': 'easy',
+                    'category': 'General',
+                    'explanation': '2 + 2 = 4'
+                }
 
             active_questions[lobby_id] = {
                 'current_question': first_question,
