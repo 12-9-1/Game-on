@@ -28,6 +28,9 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.3));
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-copy-code {
@@ -36,6 +39,9 @@
   font-size: 0.9rem;
   border: 2px solid var(--gold-400);
   color: #0a3d3d;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-leave {
@@ -152,6 +158,9 @@
   border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .badge-host {
@@ -187,6 +196,10 @@
   background: linear-gradient(135deg, var(--teal-light), var(--teal-lighter));
   border: 2px solid var(--gold-600);
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
 .btn-ready-active {
@@ -237,6 +250,10 @@
   font-size: 0.95rem;
   text-align: center;
   text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
 .lobby-info-panel {
@@ -252,6 +269,9 @@
   margin-bottom: 1.5rem;
   font-size: 1.3rem;
   text-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .info-grid {
@@ -278,6 +298,10 @@
 
 .info-icon {
   font-size: 2rem;
+  color: var(--gold-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .info-title {
