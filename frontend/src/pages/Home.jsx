@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
 import Login from "./auth/Login";
 import Register from "./auth/Register";
@@ -32,6 +32,7 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const handleLogout = () => {
     logout();
     setActiveTab("anonimo");
+    toast.success("Sesión cerrada exitosamente");
   };
 
   const [showQuickJoinModal, setShowQuickJoinModal] = useState(false);
@@ -40,7 +41,6 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
   const [createErrors, setCreateErrors] = useState({});
   const [joinErrors, setJoinErrors] = useState({});
 
-  // Establecer el nombre del usuario autenticado por defecto
   useEffect(() => {
     if (user && user.name) {
       setPlayerName(user.name);
@@ -54,10 +54,13 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
     if (!user) {
       if (!playerName.trim()) {
         errors.playerName = "El nombre es requerido";
+        toast.error("Por favor ingresa tu nombre");
       } else if (playerName.trim().length < 2) {
         errors.playerName = "El nombre debe tener al menos 2 caracteres";
+        toast.error("El nombre debe tener al menos 2 caracteres");
       } else if (playerName.trim().length > 20) {
         errors.playerName = "El nombre no puede exceder 20 caracteres";
+        toast.error("El nombre no puede exceder 20 caracteres");
       }
     }
 
@@ -71,17 +74,22 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
     if (!user) {
       if (!playerName.trim()) {
         errors.playerName = "El nombre es requerido";
+        toast.error("Por favor ingresa tu nombre");
       } else if (playerName.trim().length < 2) {
         errors.playerName = "El nombre debe tener al menos 2 caracteres";
+        toast.error("El nombre debe tener al menos 2 caracteres");
       } else if (playerName.trim().length > 20) {
         errors.playerName = "El nombre no puede exceder 20 caracteres";
+        toast.error("El nombre no puede exceder 20 caracteres");
       }
     }
 
     if (!joinLobbyId.trim()) {
       errors.lobbyId = "El código del lobby es requerido";
+      toast.error("Por favor ingresa el código del lobby");
     } else if (joinLobbyId.trim().length < 3) {
       errors.lobbyId = "El código debe tener al menos 3 caracteres";
+      toast.error("El código debe tener al menos 3 caracteres");
     }
 
     return errors;
@@ -98,12 +106,15 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
 
     setCreateErrors({});
     const name = user ? user.name || user.email : playerName;
+
     onCreateLobby({
       player_name: name,
       max_players: maxPlayers,
       public_id: user?.public_id || null,
-      
     });
+
+    toast.success("Lobby creado exitosamente");
+
     setShowCreateForm(false);
     if (!user) setPlayerName("");
   };
@@ -119,11 +130,15 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
 
     setJoinErrors({});
     const name = user ? user.name || user.email : playerName;
+
     onJoinLobby({
       lobby_id: joinLobbyId,
       player_name: name,
       public_id: user?.public_id || null,
     });
+
+    toast.success(`Uniéndose al lobby ${joinLobbyId}...`);
+
     setShowJoinForm(false);
     if (!user) setPlayerName("");
     setJoinLobbyId("");
@@ -138,6 +153,8 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
         player_name: name,
         public_id: user?.public_id || null,
       });
+
+      toast.success(`¡Uniéndose al Lobby #${lobbyId}!`);
       return;
     }
 
@@ -152,13 +169,23 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
       player_name: name,
       public_id: user?.public_id || null,
     });
+
+    toast.success(`¡Bienvenido ${name}! Uniéndose al lobby...`);
+
     setShowQuickJoinModal(false);
     setQuickJoinLobbyId("");
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setShowCreateForm(false);
+    setShowJoinForm(false);
+    setCreateErrors({});
+    setJoinErrors({});
+  };
+
   return (
     <div className="home-container">
-      <ToastContainer />
       <div className="home-header">
         <h1>
           <SiApplearcade className="header-icon" />
@@ -172,7 +199,7 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
         <div className="tabs-header">
           <button
             className={`tab-button ${activeTab === "anonimo" ? "active" : ""}`}
-            onClick={() => setActiveTab("anonimo")}
+            onClick={() => handleTabChange("anonimo")}
           >
             Anónimo
           </button>
@@ -180,7 +207,7 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
             className={`tab-button ${
               activeTab === "autenticado" ? "active" : ""
             }`}
-            onClick={() => setActiveTab("autenticado")}
+            onClick={() => handleTabChange("autenticado")}
           >
             Autenticado
           </button>
@@ -194,7 +221,14 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
               <div className="avatar-section">
                 <div className="character-avatar">
                   <span>👤</span>
-                  <button className="refresh-button">🔄</button>
+                  <button
+                    className="refresh-button"
+                    onClick={() =>
+                      toast.info("Función próximamente disponible")
+                    }
+                  >
+                    🔄
+                  </button>
                 </div>
                 <div className="input-section">
                   <input
@@ -225,7 +259,6 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                     setShowJoinForm(!showJoinForm);
                     setShowCreateForm(false);
                     setJoinErrors({});
-                   
                   }}
                 >
                   <LuPaperclip className="btn-icon" />
@@ -329,7 +362,14 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                 <div className="avatar-section">
                   <div className="character-avatar">
                     <span>👤</span>
-                    <button className="refresh-button">🔄</button>
+                    <button
+                      className="refresh-button"
+                      onClick={() =>
+                        toast.info("Función próximamente disponible")
+                      }
+                    >
+                      🔄
+                    </button>
                   </div>
                 </div>
 
@@ -449,7 +489,7 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                     className="auth-button login"
                     onClick={() => setShowLoginModal(true)}
                   >
-                    <IoMdLogIn className="btn-icon" /> {""} Iniciar Sesión
+                    <IoMdLogIn className="btn-icon" /> Iniciar Sesión
                   </button>
                   <button
                     className="auth-button register"
@@ -469,7 +509,12 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
       {showLoginModal && (
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <Login onSuccess={() => setShowLoginModal(false)} />
+            <Login
+              onSuccess={() => {
+                setShowLoginModal(false);
+                toast.success("¡Inicio de sesión exitoso!");
+              }}
+            />
             <button
               className="close-modal"
               onClick={() => setShowLoginModal(false)}
@@ -486,7 +531,12 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
           onClick={() => setShowRegisterModal(false)}
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <Register onSuccess={() => setShowRegisterModal(false)} />
+            <Register
+              onSuccess={() => {
+                setShowRegisterModal(false);
+                toast.success("¡Registro exitoso!");
+              }}
+            />
             <button
               className="close-modal"
               onClick={() => setShowRegisterModal(false)}
@@ -528,7 +578,13 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                 </div>
                 <button
                   className="btn-join"
-                  onClick={() => handleQuickJoin(lobby.id)}
+                  onClick={() => {
+                    if (lobby.player_count >= lobby.max_players) {
+                      toast.warning("Este lobby está lleno");
+                    } else {
+                      handleQuickJoin(lobby.id);
+                    }
+                  }}
                   disabled={lobby.player_count >= lobby.max_players}
                 >
                   {lobby.player_count >= lobby.max_players
@@ -550,4 +606,5 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
     </div>
   );
 }
+
 export default Home;

@@ -1,4 +1,3 @@
-// frontend/src/App.jsx
 import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -6,20 +5,30 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+
+// Conexion
+import SplashScreen from "./components/SplashScreen";
+import { socket } from "./socket";
+import Modal from "./components/Modal";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+
+// Páginas
 import Home from "./pages/Home";
 import Lobby from "./pages/Lobby";
 import Game from "./pages/Game";
-import Navbar from "./components/Navbar";
-import Modal from "./components/Modal";
-import SplashScreen from "./components/SplashScreen";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Profile from "./pages/Profile";
 import RankingGlobal from "./pages/ranking/RankingGlobal";
-import { socket } from "./socket"; // <-- usamos la instancia global
-import "./App.css";
+
+// Layout
+import Navbar from "./components/Navbar";
 import Footer from "./components/layout/footer/Footer";
+// Toasts
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import "./App.css";
 
 const AppContent = () => {
   const [connected, setConnected] = useState(false);
@@ -157,9 +166,21 @@ const AppContent = () => {
 
   return (
     <div className="app-container">
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       <Navbar onLeaveGame={handleLeaveGame} />
 
-      {error && <div className="error-toast">⚠️ {error}</div>}
+      {error && toast.error(error)}
 
       <Modal isOpen={showLogin} onClose={handleCloseLogin}>
         <Login onSuccess={handleCloseLogin} />
