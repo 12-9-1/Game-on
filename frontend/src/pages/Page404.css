@@ -1,0 +1,132 @@
+.not-found-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #0a2e2e 0%, #123838 100%);
+}
+
+.not-found-content {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 2px solid #FFB800;
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  max-width: 600px;
+  box-shadow: 0 8px 32px rgba(255, 184, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.not-found-content:hover {
+  box-shadow: 0 12px 48px rgba(255, 184, 0, 0.25);
+  transform: translateY(-5px);
+}
+
+.not-found-icon {
+  font-size: 5rem;
+  color: #FFB800;
+  margin-bottom: 1.5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.not-found-title {
+  font-size: 6rem;
+  font-weight: bold;
+  color: #FFB800;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(255, 184, 0, 0.5);
+  line-height: 1;
+}
+
+.not-found-subtitle {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #FFB800;
+  margin: 1rem 0;
+}
+
+.not-found-text {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 1.5rem 0 2.5rem;
+  line-height: 1.6;
+}
+
+.not-found-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.not-found-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.not-found-btn.primary {
+  background: #FFB800;
+  color: #0a2e2e;
+  border-color: #FFB800;
+}
+
+.not-found-btn.primary:hover {
+  background: #ffc930;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 184, 0, 0.4);
+}
+
+.not-found-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFB800;
+  border-color: #FFB800;
+  backdrop-filter: blur(5px);
+}
+
+.not-found-btn.secondary:hover {
+  background: rgba(255, 184, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 184, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .not-found-title {
+    font-size: 4rem;
+  }
+
+  .not-found-subtitle {
+    font-size: 1.5rem;
+  }
+
+  .not-found-text {
+    font-size: 1rem;
+  }
+
+  .not-found-actions {
+    flex-direction: column;
+  }
+
+  .not-found-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

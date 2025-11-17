@@ -20,6 +20,8 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Profile from "./pages/Profile";
 import RankingGlobal from "./pages/ranking/RankingGlobal";
+import Nosotros from "./pages/Nosotros";
+import Page404 from "./pages/Page404";
 
 // Layout
 import Navbar from "./components/Navbar";
@@ -232,6 +234,8 @@ const AppContent = () => {
           element={isAuthenticated ? <Profile /> : <Navigate to="/" replace />}
         />
         <Route path="/ranking" element={<RankingGlobal />} />
+        <Route path="/about" element={<Nosotros />} />
+        <Route path="*" element={<Page404 />} />
       </Routes>
 
       <Footer />
