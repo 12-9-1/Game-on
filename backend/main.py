@@ -1,28 +1,50 @@
+# CRITICAL: Monkey patch must happen BEFORE any other imports
+# This is required for eventlet/gevent to work properly with Flask-SocketIO
 import os
-from flask import Flask
-from flask_socketio import SocketIO
-from flask_cors import CORS
-from dotenv import load_dotenv
-from pymongo import MongoClient
 
 # Try to select an async mode that supports WebSocket upgrades in production
 # Prefer eventlet, then gevent, otherwise fallback to threading (less optimal)
 async_mode = 'threading'
 use_eventlet = False
 use_gevent = False
-try:
-    import eventlet
-    eventlet.monkey_patch()
-    async_mode = 'eventlet'
-    use_eventlet = True
-except Exception:
+
+# Only do monkey patch when running directly (python main.py)
+# When imported from wsgi.py, the monkey patch is already done there first
+if __name__ == '__main__':
     try:
-        from gevent import monkey
-        monkey.patch_all()
-        async_mode = 'gevent'
-        use_gevent = True
-    except Exception:
-        async_mode = 'threading'
+        import eventlet
+        eventlet.monkey_patch()
+        async_mode = 'eventlet'
+        use_eventlet = True
+    except (ImportError, Exception):
+        try:
+            from gevent import monkey
+            monkey.patch_all()
+            async_mode = 'gevent'
+            use_gevent = True
+        except (ImportError, Exception):
+            async_mode = 'threading'
+else:
+    # When imported (e.g., from wsgi.py), assume eventlet is already patched
+    # wsgi.py handles the monkey patching before importing this module
+    try:
+        import eventlet
+        async_mode = 'eventlet'
+        use_eventlet = True
+    except ImportError:
+        try:
+            import gevent
+            async_mode = 'gevent'
+            use_gevent = True
+        except ImportError:
+            async_mode = 'threading'
+
+# NOW we can import Flask and other modules
+from flask import Flask
+from flask_socketio import SocketIO
+from flask_cors import CORS
+from dotenv import load_dotenv
+from pymongo import MongoClient
 
 # Load environment variables
 load_dotenv()
@@ -40,10 +62,18 @@ db = client['game_on_db']
 app = Flask(__name__)
 app.config['SECRET_KEY'] = jwt_secret
 
-# Allowed origins
-# Always include common localhost dev origins so frontend running on Vite can talk to backend locally.
+"""
+Unify CORS configuration to allow local Vite dev servers and respect
+an environment override. We include both 5173 and 5174 localhost
+origins so the frontend can run on either port during development.
+"""
+
 allowed_origins = [
     FRONTEND_URL,
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
 ]
 
 # In development, you can allow all origins by setting the environment variable

@@ -1,6 +1,5 @@
 .game-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a1929 0%, #1a2f3f 100%);
   padding: 2rem;
   display: flex;
   flex-direction: column;
@@ -141,7 +140,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -155,7 +155,7 @@
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid var(--gold-400);
   border-radius: 16px;
-  padding: 2.5rem;
+  padding: 3rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
 }
@@ -172,7 +172,7 @@
 /* Opciones */
 .options-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -229,7 +229,8 @@
 }
 
 @keyframes correctAnswer {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -238,7 +239,8 @@
 }
 
 @keyframes wrongAnswer {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
   25% {
@@ -382,8 +384,23 @@
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
 }
 
+.solo-player-message {
+  color: var(--teal-light);
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--teal-light);
+  border-radius: 16px;
+  line-height: 1.6;
+}
+
 .winner-card {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.2),
+    rgba(255, 215, 0, 0.1)
+  );
   border: 3px solid var(--gold-400);
   border-radius: 20px;
   padding: 2rem;
@@ -393,7 +410,8 @@
 }
 
 @keyframes winnerGlow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
   }
   50% {
@@ -408,7 +426,8 @@
 }
 
 @keyframes bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {

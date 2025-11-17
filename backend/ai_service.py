@@ -29,7 +29,6 @@ NO_TRANSLATE_WORDS = {
     'facebook', 'twitter', 'youtube', 'netflix',
 }
 
-
 def translate_text(text):
     """
     Traduce texto de inglés a español con manejo mejorado
@@ -218,13 +217,19 @@ def generate_single_question_sync(difficulty='medium'):
     difficulties = ['easy', 'easy', 'medium', 'medium', 'hard']
     actual_difficulty = random.choice(difficulties)
     
-    question = get_question_from_opentdb(actual_difficulty)
-    
-    if not question:
-        print("⚠️ No se pudo obtener pregunta")
-        return None
-    
-    return question
+    # Hacer varios intentos contra la API antes de rendirse
+    max_attempts = 5
+    for attempt in range(1, max_attempts + 1):
+        question = get_question_from_opentdb(actual_difficulty)
+        if question:
+            return question
+
+        wait_time = 2 * attempt
+        print(f"⚠️ Intento {attempt}/{max_attempts} fallido, reintentando en {wait_time}s...")
+        time.sleep(wait_time)
+
+    print("⚠️ No se pudo obtener pregunta de OpenTDB tras varios intentos")
+    return None
 
 
 def generate_round_questions(num_questions=5, difficulty='medium'):

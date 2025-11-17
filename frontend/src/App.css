@@ -5,60 +5,61 @@
   --teal-medium: #0d5252;
   --teal-light: #126666;
   --teal-lighter: #1a7a7a;
-  
+
   /* Colores de fondo - Azul Petróleo */
   --bg-primary: #051f1f;
   --bg-secondary: #0a3d3d;
   --bg-tertiary: #0d5252;
   --bg-hover: #126666;
-  
+
   /* Colores de texto */
   --text-primary: #f0f9ff;
   --text-secondary: #cffafe;
   --text-muted: #a5f3fc;
-  
+
   /* Colores de acento - Dorado */
   --accent-primary: #f59e0b;
   --accent-hover: #d97706;
   --accent-light: #fbbf24;
   --accent-border: #fcd34d;
-  
+
   /* Colores de estado */
   --success: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --info: #3b82f6;
-  
+
   /* Variables de diseño */
   --border-radius: 8px;
-  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Configuración del tema */
   color-scheme: dark;
 }
 
 /* ☀️ Tema Claro - Azul y Dorado */
 [data-theme="light"] {
-  --bg-primary: #f0f9ff;
-  --bg-secondary: #e0f2fe;
-  --bg-tertiary: #bae6fd;
+  --bg-primary: #424646af;
+  --bg-secondary: #989a9bcb;
+  --bg-tertiary: #191b1b8a;
   --bg-hover: #7dd3fc;
-  
-  --text-primary: #0c4a6e;
-  --text-secondary: #0369a1;
-  --text-muted: #0ea5e9;
-  
+
+  --text-primary: #4b82a1;
+  --text-secondary: #0e72a8;
+  --text-muted: #359ecf;
+
   --teal-dark: #0e7490;
   --teal-medium: #0ea5e9;
   --teal-light: #38bdf8;
   --teal-lighter: #7dd3fc;
-  
+
   --accent-primary: #d97706;
   --accent-hover: #b45309;
   --accent-light: #fbbf24;
   --accent-border: #f59e0b;
-  
+
   color-scheme: light;
 }
 
@@ -69,7 +70,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   line-height: 1.6;
   color: var(--text-primary);
   background-color: var(--bg-primary);
@@ -177,7 +179,8 @@ body {
 }
 
 .profile-container:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2),
+    0 4px 6px -2px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 
@@ -191,14 +194,19 @@ body {
 }
 
 .profile-container h1::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100px;
   height: 3px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent-primary),
+    transparent
+  );
   border-radius: 3px;
 }
 
@@ -213,7 +221,11 @@ body {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--teal-medium), var(--accent-primary));
+  background: linear-gradient(
+    135deg,
+    var(--teal-medium),
+    var(--accent-primary)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -221,13 +233,15 @@ body {
   flex-shrink: 0;
   color: var(--text-primary);
   border: 3px solid var(--accent-border);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
 }
 
 .profile-avatar:hover {
   transform: scale(1.05);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2),
+    0 4px 6px -2px rgba(0, 0, 0, 0.1);
 }
 
 .profile-details {
@@ -283,11 +297,11 @@ body {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .main-content {
     padding: 1rem;
   }
-  
+
   .navbar {
     padding: 1rem;
   }
@@ -310,11 +324,6 @@ body {
   border-radius: 50%;
   animation: spin 1s linear infinite;
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 .loading-screen h2 {

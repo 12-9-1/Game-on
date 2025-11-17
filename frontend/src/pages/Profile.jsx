@@ -46,7 +46,6 @@ const Profile = () => {
         <ProfileDetails>
           <DetailItem><strong>Nombre:</strong> {user.name}</DetailItem>
           <DetailItem><strong>Email:</strong> {user.email}</DetailItem>
-          <DetailItem><strong>ID de usuario:</strong> {user.public_id}</DetailItem>
         </ProfileDetails>
       </ProfileInfo>
 

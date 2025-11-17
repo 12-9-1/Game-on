@@ -1,226 +1,113 @@
-import { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import styled from 'styled-components';
-import { FaEnvelope, FaLock } from 'react-icons/fa';
+import { useState, useRef } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { FaEnvelope, FaLock } from "react-icons/fa";
+import "./Auth.css";
 
 const Login = ({ onSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const { login, isAuthenticated } = useAuth();
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      return setError('Por favor completa todos los campos');
+
+    const newErrors = {};
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) newErrors.email = "Campo incompleto";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail))
+      newErrors.email = "Email inválido";
+
+    if (!password) newErrors.password = "Campo incompleto";
+    else if (password.length < 6)
+      newErrors.password = "La contraseña debe tener al menos 6 caracteres";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      const order = ["email", "password"];
+      const first = order.find((f) => newErrors[f]);
+      if (first === "email") emailRef.current?.focus();
+      else if (first === "password") passwordRef.current?.focus();
+      return;
     }
 
     try {
-      setError('');
+      setError("");
       setLoading(true);
       const result = await login(email, password);
-      
+
       if (result.success) {
         onSuccess?.();
       } else {
-        setError(result.message || 'Error al iniciar sesión');
+        setError(result.message || "Error al iniciar sesión");
       }
     } catch (err) {
-      setError('Error al iniciar sesión');
+      setError("Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthContainer>
+    <div className="auth-container">
       <h2>Iniciar Sesión</h2>
-      {error && <ErrorText>{error}</ErrorText>}
-      <AuthForm onSubmit={handleSubmit}>
-        <FormGroup>
-          <InputGroup>
-            <InputIcon>
+      {error && <p className="error-text">{error}</p>}
+      <form className="auth-form" onSubmit={handleSubmit} noValidate>
+        <div className="form-group">
+          <div className="input-group">
+            <span className="input-icon">
               <FaEnvelope />
-            </InputIcon>
-            <Input
+            </span>
+            <input
+              ref={emailRef}
+              className={`auth-input ${errors.email ? "input-error" : ""}`}
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors({ ...errors, email: "" });
+              }}
               placeholder="Correo electrónico"
               autoComplete="username email"
-              required
             />
-          </InputGroup>
-        </FormGroup>
-        
-        <FormGroup>
-          <InputGroup>
-            <InputIcon>
+          </div>
+          {errors.email && <span className="field-error">{errors.email}</span>}
+        </div>
+
+        <div className="form-group">
+          <div className="input-group">
+            <span className="input-icon">
               <FaLock />
-            </InputIcon>
-            <Input
+            </span>
+            <input
+              ref={passwordRef}
+              className={`auth-input ${errors.password ? "input-error" : ""}`}
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors({ ...errors, password: "" });
+              }}
               placeholder="Contraseña"
               autoComplete="current-password"
-              required
             />
-          </InputGroup>
-        </FormGroup>
-        
-        <SubmitButton type="submit" disabled={loading}>
-          {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-        </SubmitButton>
-        
-        <AuthFooter>
-          ¿No tienes una cuenta?{' '}
-          <button 
-            type="button" 
-            onClick={onSuccess} 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: '#007bff', 
-              cursor: 'pointer',
-              padding: 0,
-              textDecoration: 'underline',
-              fontSize: '0.95rem'
-            }}
-          >
-            Regístrate
-          </button>
-        </AuthFooter>
-      </AuthForm>
-    </AuthContainer>
+          </div>
+          {errors.password && (
+            <span className="field-error">{errors.password}</span>
+          )}
+        </div>
+
+        <button className="submit-button" type="submit" disabled={loading}>
+          {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+        </button>
+      </form>
+    </div>
   );
 };
-
-// Styled Components
-const AuthContainer = styled.div`
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  
-  h2 {
-    text-align: center;
-    color: ${({ theme }) => theme.text};
-    margin-bottom: 1.5rem;
-  }
-`;
-
-const AuthForm = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
-`;
-
-const ErrorText = styled.p`
-  color: #ff4d4f;
-  margin-bottom: 1rem;
-  text-align: center;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const InputGroup = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-`;
-
-const InputIcon = styled.span`
-  position: absolute;
-  left: 1rem;
-  color: var(--text-muted);
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
-  border: 1px solid var(--teal-light);
-  border-radius: var(--border-radius);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 1rem;
-  transition: var(--transition);
-  
-  &:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
-  }
-  
-  &::placeholder {
-    color: var(--text-muted);
-  }
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 1rem;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-
-  &:disabled {
-    background-color: #6c757d;
-    cursor: not-allowed;
-  }
-`;
-
-const AuthFooter = styled.div`
-  text-align: center;
-  margin-top: 1.5rem;
-  color: #6c757d;
-  font-size: 0.95rem;
-  
-  button {
-    background: none;
-    border: none;
-    color: #007bff;
-    cursor: pointer;
-    padding: 0;
-    text-decoration: underline;
-    font-size: 0.95rem;
-    
-    &:hover {
-      color: #0056b3;
-    }
-  }
-`;
-
-const AuthLinks = styled.div`
-  text-align: center;
-  margin-top: 1.5rem;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-`;
-
-const ErrorMessage = styled.div`
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  border-left: 3px solid #ef4444;
-`;
 
 export default Login;
