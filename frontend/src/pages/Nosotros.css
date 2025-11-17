@@ -1,0 +1,80 @@
+.nosotros-container {
+  padding: 40px;
+  text-align: center;
+}
+
+.nosotros-container h1 {
+  margin-bottom: 20px;
+  font-size: 2.2rem;
+}
+
+.intro-proyecto {
+  max-width: 700px;
+  margin: 0 auto 40px auto;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: #ffffff;
+}
+
+
+.nosotros-grid-custom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 38px;
+}
+
+.fila-equipo {
+  display: flex;
+  justify-content: center;
+  gap: 58px;
+  margin-bottom: 0;
+}
+
+.fila-1 .card, .fila-2 .card {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .fila-equipo {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(10px);
+  padding: 20px;
+  border-radius: 12px;
+  border: 2px solid #fbbf24;
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.2);
+  width: 220px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(251, 191, 36, 0.4);
+}
+
+.profe-card {
+  border: 3px solid #fbbf24;
+  box-shadow: 0 4px 30px rgba(251, 191, 36, 0.35);
+}
+
+.avatar-img {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+  border: 3px solid #fbbf24;
+}
+
+.presentacion {
+  font-size: 0.95rem;
+  color: #ffffff;
+  margin-top: 10px;
+}
