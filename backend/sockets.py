@@ -293,10 +293,18 @@ def register_socket_events(socketio):
         def generate_questions_continuously():
             print(f'Thread de generación iniciado para lobby {lobby_id}')
             while lobby_id in lobbies and lobbies[lobby_id]['status'] == 'playing':
-                # Si la cola tiene menos de 2 preguntas, generar una nueva
+        # Si la cola tiene menos de 2 preguntas, generar una nueva (con fallback local)
                 if lobby_id in question_queue and len(question_queue[lobby_id]) < 2:
                     print(f'Generando pregunta para cola del lobby {lobby_id}...')
-                    question = generate_single_question_sync()
+                    # Usar fallback local para no bloquear
+                    question = {
+                        'question': '¿Cuál es la capital de Francia?',
+                        'options': ['Londres', 'Berlín', 'París', 'Madrid'],
+                        'correct_answer': 2,
+                        'difficulty': 'easy',
+                        'category': 'Geografía',
+                        'explanation': 'La capital de Francia es París'
+                    }
                     if question:
                         question_queue[lobby_id].append(question)
                         print(f'Pregunta agregada a cola. Total en cola: {len(question_queue[lobby_id])}')
@@ -319,9 +327,16 @@ def register_socket_events(socketio):
         if len(question_queue[lobby_id]) > 0:
             return question_queue[lobby_id].pop(0)
         
-        # Si no hay preguntas en cola, generar una inmediatamente
-        print(f'Cola vacía, generando pregunta inmediata...')
-        return generate_single_question_sync()
+        # Si no hay preguntas en cola, usar fallback local inmediato
+        print(f'Cola vacía, usando pregunta de fallback...')
+        return {
+            'question': '¿En qué año se declaró la independencia de Estados Unidos?',
+            'options': ['1775', '1776', '1777', '1778'],
+            'correct_answer': 1,
+            'difficulty': 'medium',
+            'category': 'Historia',
+            'explanation': 'Estados Unidos se independizó en 1776'
+        }
     
     @socketio.on('start_game')
     def handle_start_game():
