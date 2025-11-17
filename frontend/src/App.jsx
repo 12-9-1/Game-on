@@ -27,7 +27,7 @@ import Nosotros from "./pages/Nosotros";
 import Page404 from "./pages/Page404";
 
 // Layout
-import Navbar from "./components/Navbar";
+import Navbar from "./components/layout/navbar/Navbar";
 import Footer from "./components/layout/footer/Footer";
 // Toasts
 import { ToastContainer, toast } from "react-toastify";
