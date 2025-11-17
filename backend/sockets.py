@@ -161,10 +161,7 @@ def register_socket_events(socketio):
             emit('error', {'message': 'Lobby lleno'})
             return
         
-        # Verificar si el juego ya comenzó
-        if lobby['status'] != 'waiting':
-            emit('error', {'message': 'El juego ya comenzó'})
-            return
+        # Nota: permitir unirse incluso si el juego está en progreso (jugarán desde la siguiente pregunta)
         
         # Agregar jugador al lobby
         player = {
@@ -174,6 +171,11 @@ def register_socket_events(socketio):
             'is_host': False,
             'ready': False
         }
+        
+        # Si el juego está en progreso, inicializar puntuación del nuevo jugador
+        if lobby['status'] == 'playing':
+            player['score'] = 0
+            player['active_powers'] = {}
         lobby['players'].append(player)
         
         # Unir al jugador a la sala
@@ -337,12 +339,7 @@ def register_socket_events(socketio):
             emit('error', {'message': 'Solo el host puede iniciar el juego'})
             return
         
-        # Verificar que todos estén listos (excepto el host)
-        all_ready = all(p['ready'] or p['is_host'] for p in lobby['players'])
-        
-        if not all_ready:
-            emit('error', {'message': 'No todos los jugadores están listos'})
-            return
+        # El host puede iniciar el juego en cualquier momento (otros pueden unirse durante el juego)
         
         # Cambiar estado del lobby
         lobby['status'] = 'playing'
