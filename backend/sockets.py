@@ -1024,4 +1024,3 @@ def register_socket_events(socketio):
         emit('lobby_updated', {
             'lobby': lobby
         })
-
