@@ -3,9 +3,9 @@ import styled from 'styled-components';
 import { useState, useEffect } from 'react';
 import { FaTrophy, FaGamepad } from 'react-icons/fa';
 
-
-// Use Vite-exposed env var, fallback to legacy name
-const backendUrl = import.meta.env.VITE_BACKEND_URL
+// Usar la misma env que en AuthContext (VITE_URL_BACKEND), con fallback
+const backendUrl =
+  import.meta.env.VITE_URL_BACKEND || import.meta.env.VITE_BACKEND_URL;
 
 const Profile = () => {
   const { user } = useAuth();
@@ -13,7 +13,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.public_id) {
+    if (user?.public_id && backendUrl) {
       fetchUserStats();
     }
   }, [user]);
@@ -24,7 +24,22 @@ const Profile = () => {
       const data = await response.json();
       
       if (data.usuarios) {
-        const currentUser = data.usuarios.find(u => u.name === user.name);
+        // Intentar matchear por public_id si viene en la respuesta;
+        // si no, caer de vuelta a name.
+        let currentUser = null;
+
+        // Algunas versiones del backend solo devuelven name y games_won.
+        // Si en el futuro se agrega public_id, este bloque ya lo soporta.
+        if (user.public_id) {
+          currentUser = data.usuarios.find(
+            (u) => u.public_id && u.public_id === user.public_id
+          );
+        }
+
+        if (!currentUser) {
+          currentUser = data.usuarios.find((u) => u.name === user.name);
+        }
+
         if (currentUser) {
           setGamesWon(currentUser.games_won);
         }

@@ -485,8 +485,10 @@ def register_socket_events(socketio):
         }
         
         print(f'Enviando pregunta #{question_data["question_number"]} con poderes individuales al lobby {lobby_id}')
-        
-        emit('lobby_updated', {'lobby': lobby}, room=lobby_id)
+
+        # Usar socketio.emit porque esta función también se llama desde
+        # threads en background (auto_advance), donde no hay contexto de request.
+        socketio.emit('lobby_updated', {'lobby': lobby}, room=lobby_id)
         
         # Cancelar temporizador anterior
         if lobby_id in question_timers and question_timers[lobby_id]:
@@ -727,10 +729,12 @@ def register_socket_events(socketio):
             return
         
         lobby_id = user_lobbies[sid]
-        
+
+        # Solo registrar que este jugador no respondió; el avance de pregunta
+        # lo maneja el temporizador auto_advance de send_next_question.
         if lobby_id not in active_questions or lobby_id not in player_answers:
             return
-        
+
         if sid not in player_answers[lobby_id]['answers']:
             player_answers[lobby_id]['answers'][sid] = {
                 'answer_index': -1,
