@@ -1,26 +1,34 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useConfirmModal } from "../contexts/ConfirmModalContext";
 import { useEffect, useState } from "react";
-import { FaSun, FaMoon, FaUser, FaSignOutAlt, FaTrophy, FaBars, FaTimes } from "react-icons/fa";
+import {
+  FaSun,
+  FaMoon,
+  FaUser,
+  FaSignOutAlt,
+  FaTrophy,
+  FaBars,
+  FaTimes,
+} from "react-icons/fa";
 import styled from "styled-components";
 
 const Navbar = ({ onLeaveGame }) => {
   const { user, logout, isAuthenticated } = useAuth();
+  const { showConfirm } = useConfirmModal();
   const navigate = useNavigate();
   const location = useLocation();
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  // Protección extra: solo el botón y el overlay pueden abrir/cerrar el menú
+
   const handleMenuToggle = () => setIsMenuOpen((prev) => !prev);
   const handleMenuClose = () => setIsMenuOpen(false);
 
   useEffect(() => {
-    // Aplicar el tema guardado al cargar
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  // Cerrar el menú cuando cambia la ruta
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
@@ -29,41 +37,118 @@ const Navbar = ({ onLeaveGame }) => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
-  // Cerrar sesión de usuario (independiente del juego)
-  const handleSessionLogout = () => {
-    logout();
-    navigate("/");
-  };
+  const isInLobby = location.pathname === "/lobby";
+  const isInGame = location.pathname === "/game";
 
-  // Salir de la partida cuando estamos en /game
-  const handleGameExit = () => {
-    if (onLeaveGame) {
-      onLeaveGame();
+  const handleLogoClick = async (e) => {
+    e.preventDefault();
+
+    if (isInLobby) {
+      await showConfirm({
+        title: "Abandonar Lobby",
+        message: "¿Estás seguro de que quieres abandonar el lobby?",
+        confirmText: "Sí, abandonar",
+        cancelText: "Cancelar",
+        isDangerous: false,
+        onConfirm: () => {
+          navigate("/");
+        },
+      });
+    } else if (isInGame) {
+      await showConfirm({
+        title: "⚠️ Abandonar Juego",
+        message: "¿Estás seguro que deseas abandonar? Se perderá tu progreso.",
+        confirmText: "Sí, salir",
+        cancelText: "Cancelar",
+        isDangerous: true,
+        onConfirm: () => {
+          if (onLeaveGame) {
+            onLeaveGame();
+          }
+          navigate("/");
+        },
+      });
+    } else {
+      // Navigate directly if not in lobby or game
+      navigate("/");
     }
   };
 
-  const showBackButton = ["/profile", "/ranking", "/lobby"].includes(
-    location.pathname
-  );
-
-  const handleBack = () => {
-    navigate("/");
-    setIsMenuOpen(false);
+  const handleSessionLogout = async () => {
+    const confirmed = await showConfirm({
+      title: "Cerrar sesión",
+      message: "¿Estás seguro que deseas cerrar sesión?",
+      confirmText: "Sí, cerrar sesión",
+      cancelText: "Cancelar",
+      isDangerous: false,
+      onConfirm: () => {
+        logout();
+        navigate("/");
+      },
+    });
   };
 
-  const handleNavigate = (path) => {
-    navigate(path);
-    setIsMenuOpen(false);
+  const handleGameExit = async () => {
+    const confirmed = await showConfirm({
+      title: "⚠️ Abandonar Juego",
+      message: "¿Estás seguro que deseas abandonar? Se perderá tu progreso.",
+      confirmText: "Sí, salir",
+      cancelText: "Cancelar",
+      isDangerous: true,
+      onConfirm: () => {
+        if (onLeaveGame) {
+          onLeaveGame();
+        }
+      },
+    });
   };
 
-  const isInGame = location.pathname === "/game";
+  const handleGoToRanking = async () => {
+    if (isInLobby) {
+      const confirmed = await showConfirm({
+        title: "Abandonar Lobby",
+        message:
+          "¿Estás seguro que quieres abandonar el lobby para ver el ranking?",
+        confirmText: "Sí, ir al ranking",
+        cancelText: "Cancelar",
+        isDangerous: false,
+        onConfirm: () => {
+          navigate("/ranking");
+        },
+      });
+    } else {
+      navigate("/ranking");
+    }
+  };
+
+  const handleGoToProfile = async () => {
+    if (isInLobby) {
+      const confirmed = await showConfirm({
+        title: "Abandonar Lobby",
+        message: "¿Estás seguro de que quieres abandonar el lobby?",
+        confirmText: "Sí, ir al perfil",
+        cancelText: "Cancelar",
+        isDangerous: false,
+        onConfirm: () => {
+          navigate("/profile");
+        },
+      });
+    } else {
+      navigate("/profile");
+    }
+  };
+
+  const showBackButton = false;
 
   return (
     <>
       {isMenuOpen && <Overlay onClick={handleMenuClose} />}
       <Nav>
         <NavBrand>
-          <StyledNavLogo href="/" aria-label="Battle Quiz Arena">
+          <StyledNavLogo
+            onClick={handleLogoClick}
+            aria-label="Battle Quiz Arena"
+          >
             <LogoContainer>
               <BattleText>BATTLE</BattleText>
               <QuizText>QUIZ</QuizText>
@@ -76,9 +161,7 @@ const Navbar = ({ onLeaveGame }) => {
         </HamburgerButton>
         <NavActions $isOpen={isMenuOpen}>
           {showBackButton && (
-            <BackButton onClick={handleBack}>
-              Volver
-            </BackButton>
+            <BackButton onClick={handleBackFromLobby}>← Volver</BackButton>
           )}
           <ThemeToggle
             onClick={toggleTheme}
@@ -89,7 +172,7 @@ const Navbar = ({ onLeaveGame }) => {
           </ThemeToggle>
           {!isInGame && (
             <RankingButton
-              onClick={() => handleNavigate("/ranking")}
+              onClick={handleGoToRanking}
               title="Ver ranking global"
             >
               <FaTrophy /> Ranking
@@ -102,10 +185,7 @@ const Navbar = ({ onLeaveGame }) => {
           )}
           {isAuthenticated && !isInGame && (
             <>
-              <ProfileButton
-                onClick={() => handleNavigate("/profile")}
-                title="Ver perfil"
-              >
+              <ProfileButton onClick={handleGoToProfile} title="Ver perfil">
                 <FaUser /> {user?.name || "Perfil"}
               </ProfileButton>
               <LogoutButton onClick={handleSessionLogout} title="Cerrar sesión">
@@ -119,7 +199,6 @@ const Navbar = ({ onLeaveGame }) => {
   );
 };
 
-// Styled Components
 const Nav = styled.nav`
   display: flex;
   justify-content: space-between;
@@ -133,7 +212,7 @@ const Nav = styled.nav`
   top: 0;
   z-index: 1000;
   border-bottom: 2px solid var(--accent-border);
-  
+
   @media (max-width: 768px) {
     padding: 1rem;
   }
@@ -245,14 +324,14 @@ const NavActions = styled.div`
     backdrop-filter: blur(20px);
     flex-direction: column;
     padding: 1.5rem 1rem 2rem 1rem;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    max-height: ${props => props.$isOpen ? '500px' : '0'};
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    max-height: ${(props) => (props.$isOpen ? "500px" : "0")};
     overflow: hidden;
     gap: 1.5rem;
     align-items: stretch;
-    visibility: ${props => props.$isOpen ? 'visible' : 'hidden'};
-    pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
-    transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), visibility 0.3s;
+    visibility: ${(props) => (props.$isOpen ? "visible" : "hidden")};
+    pointer-events: ${(props) => (props.$isOpen ? "auto" : "none")};
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
     z-index: 999;
   }
 `;
@@ -367,23 +446,6 @@ const BackButton = styled(Button)`
   &:hover {
     background-color: var(--bg-hover);
     color: var(--accent-primary);
-  }
-`;
-
-const AuthButton = styled(Button)`
-  background-color: ${(props) =>
-    props.$primary ? "var(--accent-primary)" : "transparent"};
-  color: ${(props) =>
-    props.$primary ? "var(--bg-primary)" : "var(--text-primary)"};
-  border: 1px solid
-    ${(props) => (props.$primary ? "transparent" : "var(--accent-border)")};
-  font-weight: ${(props) => (props.$primary ? "600" : "500")};
-
-  &:hover {
-    background-color: ${(props) =>
-      props.$primary ? "var(--accent-hover)" : "var(--bg-hover)"};
-    color: ${(props) => (props.$primary ? "white" : "var(--accent-light)")};
-    transform: translateY(-1px);
   }
 `;
 

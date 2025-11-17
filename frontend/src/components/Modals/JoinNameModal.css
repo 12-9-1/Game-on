@@ -12,15 +12,6 @@
   animation: fadeIn 0.2s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .join-modal-content {
   background: var(--bg-secondary);
   border: 2px solid var(--gold-600);
@@ -115,6 +106,24 @@
 
 .join-modal-content .form-actions button {
   flex: 1;
+}
+
+.input-error {
+  border-color: #e74c3c !important;
+  background-color: #fee;
+}
+
+.error-message {
+  display: block;
+  color: #e74c3c;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #95a5a6;
 }
 
 @media (max-width: 480px) {

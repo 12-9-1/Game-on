@@ -9,8 +9,11 @@ import {
 // Conexion
 import SplashScreen from "./components/SplashScreen";
 import { socket } from "./socket";
-import Modal from "./components/Modal";
+import Modal from "./components/Modals/Modal";
+
+// Context
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ConfirmModalProvider } from "./contexts/ConfirmModalContext";
 
 // Páginas
 import Home from "./pages/Home";
@@ -32,16 +35,13 @@ import "react-toastify/dist/ReactToastify.css";
 
 import "./App.css";
 
-const AppContent = () => {
-  const [connected, setConnected] = useState(false);
+const AppContent = ({ socketConnected }) => {
   const [lobbies, setLobbies] = useState([]);
   const [currentLobby, setCurrentLobby] = useState(null);
   const [error, setError] = useState(null);
   const [gameActive, setGameActive] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
   const { isAuthenticated } = useAuth();
 
   const handleOpenLogin = () => setShowLogin(true);
@@ -49,28 +49,10 @@ const AppContent = () => {
   const handleOpenRegister = () => setShowRegister(true);
   const handleCloseRegister = () => setShowRegister(false);
 
-  const handleSplashComplete = () => {
-    console.log("Splash screen completado");
-    setShowSplash(false);
-    setIsInitialized(true);
-  };
-
   useEffect(() => {
-    // ⚡ Conexión Socket.IO usando la instancia global
-    if (!socket) return;
+    if (!socket || !socketConnected) return;
 
-    console.log("Iniciando conexión Socket.IO...");
-
-    socket.on("connect", () => {
-      console.log("Conectado al servidor");
-      setConnected(true);
-      socket.emit("get_lobbies");
-    });
-
-    socket.on("disconnect", () => {
-      console.log("Desconectado del servidor");
-      setConnected(false);
-    });
+    console.log("Configurando listeners de Socket.IO...");
 
     socket.on("connected", (data) => {
       console.log(data.message);
@@ -107,12 +89,12 @@ const AppContent = () => {
       setCurrentLobby(data.lobby);
     });
 
-    // Cleanup: solo remover listeners, NO desconectar el socket
-    // El socket es global y debe mantenerse conectado durante toda la vida de la app
+    // Solicitar lista de lobbies al montar
+    socket.emit("get_lobbies");
+
+    // Cleanup: solo remover listeners
     return () => {
       console.log("Limpiando listeners de Socket.IO...");
-      socket.off("connect");
-      socket.off("disconnect");
       socket.off("connected");
       socket.off("error");
       socket.off("lobbies_list");
@@ -123,18 +105,18 @@ const AppContent = () => {
       socket.off("game_started");
       socket.off("returned_to_lobby");
     };
-  }, []);
+  }, [socketConnected]);
 
   // Actualizar lista de lobbies periódicamente
   useEffect(() => {
-    if (!socket || !connected || currentLobby) return;
+    if (!socket || !socketConnected || currentLobby) return;
 
     const interval = setInterval(() => {
       socket.emit("get_lobbies");
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [connected, currentLobby]);
+  }, [socketConnected, currentLobby]);
 
   const handleCreateLobby = (data) => socket?.emit("create_lobby", data);
   const handleJoinLobby = (data) => socket?.emit("join_lobby", data);
@@ -143,28 +125,6 @@ const AppContent = () => {
     setGameActive(false);
     setCurrentLobby(null);
   };
-
-  if (showSplash)
-    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
-  if (!isInitialized)
-    return (
-      <div className="app-container">
-        <div className="loading-screen">
-          <div className="loading-spinner"></div>
-          <h2>Inicializando aplicación...</h2>
-        </div>
-      </div>
-    );
-  if (!connected)
-    return (
-      <div className="app-container">
-        <div className="loading-screen">
-          <div className="loading-spinner"></div>
-          <h2>Conectando al servidor...</h2>
-          <p>Por favor espera un momento</p>
-        </div>
-      </div>
-    );
 
   return (
     <div className="app-container">
@@ -244,6 +204,76 @@ const AppContent = () => {
 };
 
 function App() {
+  // ✅ Estado del socket a nivel de App (NO se reinicia al navegar)
+  const [socketConnected, setSocketConnected] = useState(
+    socket?.connected || false
+  );
+
+  // ✅ Control del Splash Screen (solo una vez por sesión)
+  const [showSplash, setShowSplash] = useState(() => {
+    const hasSeenSplash = sessionStorage.getItem("hasSeenSplash");
+    return !hasSeenSplash;
+  });
+
+  const handleSplashComplete = () => {
+    console.log("Splash screen completado");
+    sessionStorage.setItem("hasSeenSplash", "true");
+    setShowSplash(false);
+  };
+
+  // ✅ Configurar listeners del socket UNA SOLA VEZ
+  useEffect(() => {
+    if (!socket) return;
+
+    console.log("Iniciando conexión Socket.IO...");
+
+    const handleConnect = () => {
+      console.log("✅ Conectado al servidor");
+      setSocketConnected(true);
+      socket.emit("get_lobbies");
+    };
+
+    const handleDisconnect = () => {
+      console.log("❌ Desconectado del servidor");
+      setSocketConnected(false);
+    };
+
+    // Listeners
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    // Si el socket ya está conectado al montar
+    if (socket.connected) {
+      setSocketConnected(true);
+    }
+
+    // Cleanup: solo remover listeners
+    return () => {
+      console.log("Limpiando listeners principales de Socket.IO...");
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, []);
+
+  // ✅ Mostrar Splash Screen (solo primera vez)
+  if (showSplash) {
+    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
+  }
+
+  // ✅ Mostrar loading solo si NO está conectado
+  if (!socketConnected) {
+    return (
+      <div className="app-container">
+        <div className="loading-screen">
+          <div className="loading-spinner"></div>
+          <h2>Conectando al servidor...</h2>
+          <p>Por favor espera un momento</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ App principal con socket conectado
   return (
     <Router
       future={{
@@ -252,7 +282,9 @@ function App() {
       }}
     >
       <AuthProvider>
-        <AppContent />
+        <ConfirmModalProvider>
+          <AppContent socketConnected={socketConnected} />
+        </ConfirmModalProvider>
       </AuthProvider>
     </Router>
   );

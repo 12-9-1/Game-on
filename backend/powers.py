@@ -15,9 +15,9 @@ class PowerType(Enum):
 
 class PowerCost(Enum):
     """Costes de cada poder en puntos"""
-    FIFTY_FIFTY = 100          # Costo bajo - elimina 2 opciones
-    DOUBLE_POINTS = 300        # Costo medio - duplica puntos
-    TIME_BOOST = 50            # Costo muy bajo - más tiempo
+    FIFTY_FIFTY = 700          # Costo ajustado - elimina 2 opciones
+    DOUBLE_POINTS = 900        # Costo ajustado - duplica puntos
+    TIME_BOOST = 400           # Costo ajustado - más tiempo
 
 
 class Power:
@@ -73,11 +73,9 @@ class PowersManager:
         """Inicializa el gestor de poderes"""
         self.available_powers: List[Power] = []
         self.used_powers: List[Power] = []
-        # Tipos de poder usados en la ronda actual (solo 1 uso por poder por ronda)
-        self.used_power_types_this_round = set()
         self.player_points = 0
         # Multiplicador aplicado cuando se paga con puntos (sobrecargo)
-        self.points_surcharge_multiplier = 1.5
+        self.points_surcharge_multiplier = 1.0
 
     def generate_question_powers(self) -> List[Dict]:
         """
@@ -150,34 +148,32 @@ class PowersManager:
         except ValueError:
             return False, {"error": "Poder no válido"}
 
-        # Verificar que el poder no haya sido usado ya en esta ronda (uso global por ronda)
-        if p_type.value in self.used_power_types_this_round:
-            return False, {"error": "Este poder ya fue usado en la ronda"}
 
         # Buscar el poder
         power = next((p for p in self.available_powers if p.power_type == p_type), None)
         if not power:
             return False, {"error": "Poder no disponible"}
 
-        # Aplicar sobrecargo si se paga con puntos (por defecto asumimos pago con puntos)
-        # Redondeamos al entero más cercano
-        surcharge_cost = int(round(power.cost * self.points_surcharge_multiplier))
+        # Coste efectivo a cobrar (sin sobrecargo)
+        effective_cost = int(round(power.cost * self.points_surcharge_multiplier))
 
-        if current_points < surcharge_cost:
-            return False, {"error": f"No tienes suficientes puntos. Necesitas {surcharge_cost}, tienes {current_points}"}
+        if current_points < effective_cost:
+            return False, {"error": f"No tienes suficientes puntos. Necesitas {effective_cost}, tienes {current_points}"}
 
-        # Marcar como usado para la ronda
-        self.used_power_types_this_round.add(p_type.value)
 
         # Aplicar efecto del poder
         effect_data = self._apply_power_effect(p_type, current_points)
+
+        # Marcar instancia de poder como usada y registrar
+        power.is_used = True
+        self.used_powers.append(power)
 
         return True, {
             "success": True,
             "power_type": power_type,
             # Devolvemos el coste real que se ha cobrado (con sobrecargo)
-            "cost": surcharge_cost,
-            "new_points": current_points - surcharge_cost,
+            "cost": effective_cost,
+            "new_points": current_points - effective_cost,
             "effect": effect_data
         }
 
@@ -232,7 +228,6 @@ class PowersManager:
         powers_info = []
         
         for power_type, config in self.POWERS_CONFIG.items():
-            is_used = any(p.power_type == power_type for p in self.used_powers)
             powers_info.append({
                 "power_type": power_type.value,
                 "name": config["name"],
@@ -240,7 +235,7 @@ class PowersManager:
                 "cost": config["cost"],
                 "description": config["description"],
                 "effect": config["effect"],
-                "is_used": is_used
+                "is_used": False
             })
         
         return powers_info
@@ -251,11 +246,139 @@ class PowersManager:
         self.used_powers = []
 
     def reset_for_new_round(self):
-        """Resetea los estados que deberían limpiarse al comenzar una nueva ronda (uso global por ronda)"""
-        self.used_power_types_this_round = set()
-        # También reiniciamos la lista de poderes disponibles
         self.available_powers = []
         self.used_powers = []
+
+
+class PlayerPowersManager:
+    """Gestor de poderes por jugador (persistencia por partida para ese jugador)"""
+
+    def __init__(self):
+        self.available_powers: List[Power] = []
+        self.used_powers: List[Power] = []
+        self.used_power_types_this_game = set()
+        self.points_surcharge_multiplier = 1.0
+        self.double_points_active = False
+
+    def generate_question_powers(self, player_used_powers: List[str] = None) -> List[Dict]:
+        self.available_powers = []
+        self.used_powers = []
+        for power_type, config in PowersManager.POWERS_CONFIG.items():
+            power = Power(
+                power_type=power_type,
+                cost=config["cost"],
+                description=config["description"],
+                effect=config["effect"]
+            )
+            if power_type.value in self.used_power_types_this_game:
+                power.is_used = True
+            self.available_powers.append(power)
+        return [p.to_dict() for p in self.available_powers]
+
+    def get_used_powers(self) -> List[str]:
+        return list(self.used_power_types_this_game)
+
+    def can_use_power(self, power_type: str, current_points: int) -> Tuple[bool, str]:
+        try:
+            p_type = PowerType(power_type)
+        except ValueError:
+            return False, "Poder no válido"
+        power = next((p for p in self.available_powers if p.power_type == p_type), None)
+        if not power:
+            return False, "Poder no disponible"
+        if p_type.value in self.used_power_types_this_game:
+            return False, "Este poder ya lo usaste en esta partida"
+        if current_points < power.cost:
+            return False, f"No tienes suficientes puntos. Necesitas {power.cost}, tienes {current_points}"
+        return True, "Poder disponible"
+
+    def use_power(self, power_type: str, current_points: int) -> Tuple[bool, Dict]:
+        can_use, msg = self.can_use_power(power_type, current_points)
+        if not can_use:
+            return False, {"error": msg}
+        p_type = PowerType(power_type)
+        power = next((p for p in self.available_powers if p.power_type == p_type), None)
+        if not power:
+            return False, {"error": "Poder no disponible"}
+        effective_cost = int(round(power.cost * self.points_surcharge_multiplier))
+        if current_points < effective_cost:
+            return False, {"error": f"No tienes suficientes puntos. Necesitas {effective_cost}, tienes {current_points}"}
+        self.used_power_types_this_game.add(p_type.value)
+        effect_data = self._apply_power_effect(p_type)
+        power.is_used = True
+        self.used_powers.append(power)
+        return True, {
+            "success": True,
+            "power_type": power_type,
+            "cost": effective_cost,
+            "new_points": current_points - effective_cost,
+            "effect": effect_data
+        }
+
+    def _apply_power_effect(self, power_type: PowerType) -> Dict:
+        if power_type == PowerType.FIFTY_FIFTY:
+            return {
+                "type": "fifty_fifty",
+                "message": "Se han eliminado 2 opciones incorrectas",
+                "remaining_options": 2
+            }
+        elif power_type == PowerType.DOUBLE_POINTS:
+            self.double_points_active = True
+            return {
+                "type": "double_points",
+                "message": "¡Ganarás el doble de puntos en esta pregunta!",
+                "multiplier": 2
+            }
+        elif power_type == PowerType.TIME_BOOST:
+            return {
+                "type": "time_boost",
+                "message": "Se añadieron 10 segundos al temporizador",
+                "added_time": 10
+            }
+        return {"type": "unknown"}
+
+    def has_double_points_active(self) -> bool:
+        return self.double_points_active
+
+    def clear_double_points(self):
+        self.double_points_active = False
+
+    def reset_for_new_question(self):
+        self.available_powers = []
+        self.used_powers = []
+        # Doble puntos solo dura una pregunta
+        self.double_points_active = False
+
+    def reset_for_new_game(self):
+        self.available_powers = []
+        self.used_powers = []
+        self.used_power_types_this_game = set()
+        self.double_points_active = False
+
+
+class GamePowersManager:
+    """Gestor de poderes del lobby: crea y mantiene gestores por jugador"""
+
+    def __init__(self):
+        self.player_managers: Dict[str, PlayerPowersManager] = {}
+
+    def get_or_create_manager(self, socket_id: str) -> PlayerPowersManager:
+        if socket_id not in self.player_managers:
+            self.player_managers[socket_id] = PlayerPowersManager()
+        return self.player_managers[socket_id]
+
+    def remove_player(self, socket_id: str):
+        if socket_id in self.player_managers:
+            del self.player_managers[socket_id]
+
+    def reset_all_for_new_question(self):
+        for mgr in self.player_managers.values():
+            mgr.reset_for_new_question()
+
+    def reset_all_for_new_game(self):
+        for mgr in self.player_managers.values():
+            mgr.reset_for_new_game()
+
 
 
 # Función auxiliar para testing

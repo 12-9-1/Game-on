@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import ConfirmModal from "../components/Modals/ConfirmModal";
 import "./Lobby.css";
 
 function Lobby({ lobby, socket }) {
@@ -10,10 +11,11 @@ function Lobby({ lobby, socket }) {
   const [mySocketId, setMySocketId] = useState(null);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
 
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
   useEffect(() => {
     setCurrentLobby(lobby);
 
-    // Determinar si soy el host
     if (socket && lobby) {
       const myId = socket.id;
       setMySocketId(myId);
@@ -22,7 +24,6 @@ function Lobby({ lobby, socket }) {
     }
   }, [lobby, socket]);
 
-  // Actualizar isHost cuando currentLobby cambia (por eventos de socket)
   useEffect(() => {
     if (socket && currentLobby) {
       const myId = socket.id;
@@ -37,7 +38,6 @@ function Lobby({ lobby, socket }) {
     const handlePlayerJoined = (data) => {
       setCurrentLobby(data.lobby);
 
-      // Notificar cuando un jugador se une
       const newPlayer = data.lobby.players[data.lobby.players.length - 1];
       if (newPlayer.socket_id !== socket.id) {
         toast.info(`🎮 ${newPlayer.name} se unió al lobby`, {
@@ -50,7 +50,6 @@ function Lobby({ lobby, socket }) {
       const previousPlayers = currentLobby?.players || [];
       const currentPlayers = data.lobby.players;
 
-      // Encontrar quién se fue
       const leftPlayer = previousPlayers.find(
         (p) => !currentPlayers.some((cp) => cp.socket_id === p.socket_id)
       );
@@ -160,7 +159,13 @@ function Lobby({ lobby, socket }) {
     }
   };
 
-  const handleLeaveLobby = () => {
+  const handleLeaveLobbyClick = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmLeaveLobby = () => {
+    setShowConfirmModal(false);
+
     if (socket) {
       socket.emit("leave_lobby");
     }
@@ -170,6 +175,10 @@ function Lobby({ lobby, socket }) {
     });
 
     navigate("/");
+  };
+
+  const handleCancelLeave = () => {
+    setShowConfirmModal(false);
   };
 
   const copyLobbyCode = () => {
@@ -195,6 +204,17 @@ function Lobby({ lobby, socket }) {
 
   return (
     <div className="lobby-container">
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title="⚠️ Abandonar Lobby"
+        message="¿Estás seguro de que quieres abandonar el lobby?"
+        confirmText="Sí, abandonar"
+        cancelText="Volver"
+        onConfirm={handleConfirmLeaveLobby}
+        onCancel={handleCancelLeave}
+        isDangerous={true}
+      />
+
       <div className="lobby-header">
         <div className="lobby-title-section">
           <h1>🎮 Lobby #{currentLobby?.id}</h1>
@@ -202,7 +222,7 @@ function Lobby({ lobby, socket }) {
             📋 Copiar Código
           </button>
         </div>
-        <button className="btn-leave" onClick={handleLeaveLobby}>
+        <button className="btn-leave" onClick={handleLeaveLobbyClick}>
           ← Salir
         </button>
       </div>
@@ -247,7 +267,6 @@ function Lobby({ lobby, socket }) {
               </div>
             ))}
 
-            {/* Slots vacíos */}
             {Array.from({
               length: currentLobby?.max_players - currentLobby?.players.length,
             }).map((_, index) => (
