@@ -21,12 +21,15 @@ function Game({ socket, currentLobby }) {
   const [loading, setLoading] = useState(true);
   const [lobby, setLobby] = useState(currentLobby || null);
   const [myScore, setMyScore] = useState(0);
-  const [winScore, setWinScore] = useState(1000);
+  const [winScore, setWinScore] = useState(10000);
   const mySocketId = socket?.id || null;
   const timerRef = useRef(null);
   const [roundResults, setRoundResults] = useState(null);
   const [roundEnded, setRoundEnded] = useState(false);
   const [playersReady, setPlayersReady] = useState([]);
+
+  // ⭐ NUEVO: Tracking de poderes usados durante toda la partida
+  const usedPowersInGame = useRef(new Set());
 
   useEffect(() => {
     if (!socket) return;
@@ -39,16 +42,50 @@ function Game({ socket, currentLobby }) {
       setAnswerResult(null);
       setPlayersAnswered(payload.players_answered || 0);
       setTotalPlayers(payload.total_players || 0);
-      setPowers(payload.powers || []);
+
+      // ⭐ NUEVO: Marcar poderes que ya fueron usados en preguntas anteriores
+      const powersWithStatus = (payload.powers || []).map((power) => ({
+        ...power,
+        is_used: usedPowersInGame.current.has(power.power_type),
+      }));
+      setPowers(powersWithStatus);
+
       setLoading(false);
       setTimeLeft(payload.time_limit || 30);
 
       console.log("New question received:", payload);
+      console.log("Used powers in game:", Array.from(usedPowersInGame.current));
     };
 
     const onPowerUsed = (payload) => {
-      if (!payload || !payload.effect) return;
+      if (!payload) return;
+      const isMe = payload.socket_id && payload.socket_id === mySocketId;
+      if (payload.error || payload.success === false) {
+        if (!isMe) return;
+        if (payload.power_type) {
+          usedPowersInGame.current.delete(payload.power_type);
+          setPowers((prevPowers) =>
+            prevPowers.map((p) =>
+              p.power_type === payload.power_type ? { ...p, is_used: false } : p
+            )
+          );
+        }
+        return;
+      }
+      if (!isMe) return;
+      if (!payload.effect) return;
       const eff = payload.effect;
+
+      console.log("Power used confirmation:", payload);
+
+      if (payload.power_type) {
+        usedPowersInGame.current.add(payload.power_type);
+        setPowers((prevPowers) =>
+          prevPowers.map((p) =>
+            p.power_type === payload.power_type ? { ...p, is_used: true } : p
+          )
+        );
+      }
 
       if (typeof payload.new_points === "number") {
         setMyScore(payload.new_points);
@@ -71,6 +108,18 @@ function Game({ socket, currentLobby }) {
       } else if (eff.type === "time_boost") {
         setTimeLeft((t) => Math.max(0, t + (eff.added_time || 10)));
       }
+    };
+
+    const onPowerError = (payload) => {
+      if (!payload) return;
+      const isMe = payload.socket_id && payload.socket_id === mySocketId;
+      if (!isMe) return;
+      const type = payload.power_type;
+      if (!type) return;
+      usedPowersInGame.current.delete(type);
+      setPowers((prev) =>
+        prev.map((p) => (p.power_type === type ? { ...p, is_used: false } : p))
+      );
     };
 
     const onLobbyUpdated = (payload) => {
@@ -104,6 +153,10 @@ function Game({ socket, currentLobby }) {
 
     const onGameStarted = (payload) => {
       console.log("Game started:", payload);
+      // ⭐ NUEVO: Resetear poderes usados al iniciar nueva partida
+      usedPowersInGame.current.clear();
+      console.log("Powers reset for new game");
+
       setLoading(false);
       if (payload) {
         if (payload.lobby) setLobby(payload.lobby);
@@ -120,6 +173,11 @@ function Game({ socket, currentLobby }) {
       setAnswerResult(null);
       setTimeLeft(0);
       clearInterval(timerRef.current);
+
+      console.log(
+        "Round ended - Powers still used:",
+        Array.from(usedPowersInGame.current)
+      );
     };
 
     const onPlayerReadyChanged = (payload) => {
@@ -143,10 +201,16 @@ function Game({ socket, currentLobby }) {
       setRoundResults(null);
       setLoading(false);
       if (payload?.lobby) setLobby(payload.lobby);
+
+      console.log(
+        "New round - Powers still used:",
+        Array.from(usedPowersInGame.current)
+      );
     };
 
     socket.on("new_question", onNewQuestion);
     socket.on("power_used", onPowerUsed);
+    socket.on("power_error", onPowerError);
     socket.on("lobby_updated", onLobbyUpdated);
     socket.on("answer_result", onAnswerResult);
     socket.on("game_started", onGameStarted);
@@ -157,6 +221,7 @@ function Game({ socket, currentLobby }) {
     return () => {
       socket.off("new_question", onNewQuestion);
       socket.off("power_used", onPowerUsed);
+      socket.off("power_error", onPowerError);
       socket.off("lobby_updated", onLobbyUpdated);
       socket.off("answer_result", onAnswerResult);
       socket.off("game_started", onGameStarted);
@@ -199,7 +264,19 @@ function Game({ socket, currentLobby }) {
 
   const handlePowerUsed = (powerType) => {
     if (!socket) return;
+
+    if (usedPowersInGame.current.has(powerType)) {
+      console.warn("Este poder ya fue usado en esta partida");
+      return;
+    }
+
     console.log("Using power:", powerType, "with score:", myScore);
+    usedPowersInGame.current.add(powerType);
+    setPowers((prevPowers) =>
+      prevPowers.map((p) =>
+        p.power_type === powerType ? { ...p, is_used: true } : p
+      )
+    );
     socket.emit("use_power", {
       power_type: powerType,
       current_points: myScore,
@@ -221,6 +298,8 @@ function Game({ socket, currentLobby }) {
       isDangerous: true,
       onConfirm: () => {
         if (!socket) return;
+        // ⭐ NUEVO: Resetear poderes al salir de la partida
+        usedPowersInGame.current.clear();
         socket.emit("back_to_lobby");
       },
     });
@@ -488,15 +567,16 @@ function Game({ socket, currentLobby }) {
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="game-sidebar-container">
           <PowersPanel
             powers={powers}
             playerPoints={myScore}
             onPowerUsed={handlePowerUsed}
             disabled={hasAnswered}
           />
+        </div>
+
+        <div className="game-sidebar-container">
           <GameSidebar socket={socket} lobby={lobby} mySocketId={mySocketId} />
         </div>
       </div>

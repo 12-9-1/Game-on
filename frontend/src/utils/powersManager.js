@@ -5,40 +5,40 @@
 
 // Tipos de poderes disponibles
 export const POWER_TYPES = {
-  FIFTY_FIFTY: 'fifty_fifty',
-  DOUBLE_POINTS: 'double_points',
-  TIME_BOOST: 'time_boost'
+  FIFTY_FIFTY: "fifty_fifty",
+  DOUBLE_POINTS: "double_points",
+  TIME_BOOST: "time_boost",
 };
 
 // Configuración de poderes para mostrar
 export const POWERS_CONFIG = {
   fifty_fifty: {
-    name: '50/50',
-    emoji: '🎯',
-    color: '#3b82f6',
-    cost: 100,
-    description: 'Elimina 2 respuestas incorrectas',
-    effect: 'Reduce las opciones a solo 2 (1 correcta y 1 incorrecta)',
-    className: 'power-fifty-fifty'
+    name: "50/50",
+    emoji: "🎯",
+    color: "#3b82f6",
+    cost: 700,
+    description: "Elimina 2 respuestas incorrectas",
+    effect: "Reduce las opciones a solo 2 (1 correcta y 1 incorrecta)",
+    className: "power-fifty-fifty",
   },
   double_points: {
-    name: 'Doble Puntos',
-    emoji: '⭐',
-    color: '#f59e0b',
-    cost: 300,
-    description: 'Duplica los puntos de esta pregunta',
-    effect: 'Si aciertas, ganas el doble de puntos',
-    className: 'power-double-points'
+    name: "Doble Puntos",
+    emoji: "⭐",
+    color: "#f59e0b",
+    cost: 900,
+    description: "Duplica los puntos de esta pregunta",
+    effect: "Si aciertas, ganas el doble de puntos",
+    className: "power-double-points",
   },
   time_boost: {
-    name: 'Tiempo Extra',
-    emoji: '⏱️',
-    color: '#10b981',
-    cost: 50,
-    description: 'Añade 10 segundos más para responder',
-    effect: 'Amplía el temporizador de la pregunta',
-    className: 'power-time-boost'
-  }
+    name: "Tiempo Extra",
+    emoji: "⏱️",
+    color: "#10b981",
+    cost: 400,
+    description: "Añade 10 segundos más para responder",
+    effect: "Amplía el temporizador de la pregunta",
+    className: "power-time-boost",
+  },
 };
 
 /**
@@ -55,9 +55,9 @@ export class PowersManager {
    * Inicializa los poderes recibidos del servidor
    */
   initializePowers(powersData) {
-    this.availablePowers = powersData.map(power => ({
+    this.availablePowers = powersData.map((power) => ({
       ...power,
-      config: POWERS_CONFIG[power.power_type]
+      config: POWERS_CONFIG[power.power_type],
     }));
   }
 
@@ -65,17 +65,18 @@ export class PowersManager {
    * Verifica si un poder puede ser usado
    */
   canUsePower(powerType) {
-    const power = this.availablePowers.find(p => p.power_type === powerType);
-    
-    if (!power) return { canUse: false, reason: 'Poder no disponible' };
-    if (power.is_used) return { canUse: false, reason: 'Ya usado en esta pregunta' };
+    const power = this.availablePowers.find((p) => p.power_type === powerType);
+
+    if (!power) return { canUse: false, reason: "Poder no disponible" };
+    if (power.is_used)
+      return { canUse: false, reason: "Ya usado en esta pregunta" };
     if (this.playerPoints < power.cost) {
-      return { 
-        canUse: false, 
-        reason: `Necesitas ${power.cost} puntos, tienes ${this.playerPoints}` 
+      return {
+        canUse: false,
+        reason: `Necesitas ${power.cost} puntos, tienes ${this.playerPoints}`,
       };
     }
-    
+
     return { canUse: true };
   }
 
@@ -86,7 +87,7 @@ export class PowersManager {
     const check = this.canUsePower(powerType);
     if (!check.canUse) return { success: false, reason: check.reason };
 
-    const power = this.availablePowers.find(p => p.power_type === powerType);
+    const power = this.availablePowers.find((p) => p.power_type === powerType);
     power.is_used = true;
     this.usedPowers.push(power);
     this.playerPoints -= power.cost;
@@ -94,7 +95,7 @@ export class PowersManager {
     return {
       success: true,
       newPoints: this.playerPoints,
-      costDeducted: power.cost
+      costDeducted: power.cost,
     };
   }
 
@@ -102,7 +103,7 @@ export class PowersManager {
    * Obtiene poderes disponibles (no usados)
    */
   getAvailablePowers() {
-    return this.availablePowers.filter(p => !p.is_used);
+    return this.availablePowers.filter((p) => !p.is_used);
   }
 
   /**
@@ -125,14 +126,14 @@ export class PowersManager {
    * Verifica si hay poderes disponibles por usar
    */
   hasPowersAvailable() {
-    return this.availablePowers.some(p => !p.is_used);
+    return this.availablePowers.some((p) => !p.is_used);
   }
 
   /**
    * Obtiene el estado de un poder específico
    */
   getPowerStatus(powerType) {
-    const power = this.availablePowers.find(p => p.power_type === powerType);
+    const power = this.availablePowers.find((p) => p.power_type === powerType);
     if (!power) return null;
 
     return {
@@ -140,7 +141,7 @@ export class PowersManager {
       cost: power.cost,
       isUsed: power.is_used,
       canUse: this.playerPoints >= power.cost && !power.is_used,
-      config: POWERS_CONFIG[power.power_type]
+      config: POWERS_CONFIG[power.power_type],
     };
   }
 }
@@ -160,21 +161,21 @@ export const PowerUtils = {
    * Obtiene el color del poder basado en su tipo
    */
   getPowerColor(powerType) {
-    return POWERS_CONFIG[powerType]?.color || '#6b7280';
+    return POWERS_CONFIG[powerType]?.color || "#6b7280";
   },
 
   /**
    * Obtiene el emoji del poder
    */
   getPowerEmoji(powerType) {
-    return POWERS_CONFIG[powerType]?.emoji || '✨';
+    return POWERS_CONFIG[powerType]?.emoji || "✨";
   },
 
   /**
    * Obtiene el nombre del poder
    */
   getPowerName(powerType) {
-    return POWERS_CONFIG[powerType]?.name || 'Poder Desconocido';
+    return POWERS_CONFIG[powerType]?.name || "Poder Desconocido";
   },
 
   /**
@@ -197,8 +198,8 @@ export const PowerUtils = {
    * Obtiene los efectos formateados de un poder
    */
   formatPowerEffect(powerType) {
-    return POWERS_CONFIG[powerType]?.effect || 'Efecto desconocido';
-  }
+    return POWERS_CONFIG[powerType]?.effect || "Efecto desconocido";
+  },
 };
 
 export default PowersManager;

@@ -37,6 +37,43 @@ const Navbar = ({ onLeaveGame }) => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
+  const isInLobby = location.pathname === "/lobby";
+  const isInGame = location.pathname === "/game";
+
+  const handleLogoClick = async (e) => {
+    e.preventDefault();
+
+    if (isInLobby) {
+      await showConfirm({
+        title: "Abandonar Lobby",
+        message: "¿Estás seguro de que quieres abandonar el lobby?",
+        confirmText: "Sí, abandonar",
+        cancelText: "Cancelar",
+        isDangerous: false,
+        onConfirm: () => {
+          navigate("/");
+        },
+      });
+    } else if (isInGame) {
+      await showConfirm({
+        title: "⚠️ Abandonar Juego",
+        message: "¿Estás seguro que deseas abandonar? Se perderá tu progreso.",
+        confirmText: "Sí, salir",
+        cancelText: "Cancelar",
+        isDangerous: true,
+        onConfirm: () => {
+          if (onLeaveGame) {
+            onLeaveGame();
+          }
+          navigate("/");
+        },
+      });
+    } else {
+      // Navigate directly if not in lobby or game
+      navigate("/");
+    }
+  };
+
   const handleSessionLogout = async () => {
     const confirmed = await showConfirm({
       title: "Cerrar sesión",
@@ -66,36 +103,52 @@ const Navbar = ({ onLeaveGame }) => {
     });
   };
 
-  const handleBack = async () => {
-    const confirmed = await showConfirm({
-      title: "⚠️ Abandonar Lobby",
-      message: "¿Estás seguro que deseas abandonar el lobby?",
-      confirmText: "Sí, volver",
-      cancelText: "Cancelar",
-      isDangerous: false,
-      onConfirm: () => {
-        navigate("/");
-      },
-    });
+  const handleGoToRanking = async () => {
+    if (isInLobby) {
+      const confirmed = await showConfirm({
+        title: "Abandonar Lobby",
+        message:
+          "¿Estás seguro que quieres abandonar el lobby para ver el ranking?",
+        confirmText: "Sí, ir al ranking",
+        cancelText: "Cancelar",
+        isDangerous: false,
+        onConfirm: () => {
+          navigate("/ranking");
+        },
+      });
+    } else {
+      navigate("/ranking");
+    }
   };
 
-  const showBackButton = ["/profile", "/ranking", "/lobby"].includes(
-    location.pathname
-  );
-
-  const handleNavigate = (path) => {
-    navigate(path);
-    setIsMenuOpen(false);
+  const handleGoToProfile = async () => {
+    if (isInLobby) {
+      const confirmed = await showConfirm({
+        title: "Abandonar Lobby",
+        message: "¿Estás seguro de que quieres abandonar el lobby?",
+        confirmText: "Sí, ir al perfil",
+        cancelText: "Cancelar",
+        isDangerous: false,
+        onConfirm: () => {
+          navigate("/profile");
+        },
+      });
+    } else {
+      navigate("/profile");
+    }
   };
 
-  const isInGame = location.pathname === "/game";
+  const showBackButton = false;
 
   return (
     <>
       {isMenuOpen && <Overlay onClick={handleMenuClose} />}
       <Nav>
         <NavBrand>
-          <StyledNavLogo href="/" aria-label="Battle Quiz Arena">
+          <StyledNavLogo
+            onClick={handleLogoClick}
+            aria-label="Battle Quiz Arena"
+          >
             <LogoContainer>
               <BattleText>BATTLE</BattleText>
               <QuizText>QUIZ</QuizText>
@@ -108,7 +161,7 @@ const Navbar = ({ onLeaveGame }) => {
         </HamburgerButton>
         <NavActions $isOpen={isMenuOpen}>
           {showBackButton && (
-            <BackButton onClick={handleBack}>Volver</BackButton>
+            <BackButton onClick={handleBackFromLobby}>← Volver</BackButton>
           )}
           <ThemeToggle
             onClick={toggleTheme}
@@ -119,7 +172,7 @@ const Navbar = ({ onLeaveGame }) => {
           </ThemeToggle>
           {!isInGame && (
             <RankingButton
-              onClick={() => handleNavigate("/ranking")}
+              onClick={handleGoToRanking}
               title="Ver ranking global"
             >
               <FaTrophy /> Ranking
@@ -132,10 +185,7 @@ const Navbar = ({ onLeaveGame }) => {
           )}
           {isAuthenticated && !isInGame && (
             <>
-              <ProfileButton
-                onClick={() => handleNavigate("/profile")}
-                title="Ver perfil"
-              >
+              <ProfileButton onClick={handleGoToProfile} title="Ver perfil">
                 <FaUser /> {user?.name || "Perfil"}
               </ProfileButton>
               <LogoutButton onClick={handleSessionLogout} title="Cerrar sesión">
