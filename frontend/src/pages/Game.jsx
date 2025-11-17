@@ -233,6 +233,24 @@ function Game({ socket, currentLobby }) {
     };
   }, [socket, question, mySocketId, lobby]);
 
+  // Si el usuario refresca o cierra la pestaña mientras está en el juego,
+  // avisar al backend que sale del lobby para que la partida termine para el otro.
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleBeforeUnload = () => {
+      try {
+        socket.emit("leave_lobby");
+      } catch (_) {}
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [socket]);
+
   useEffect(() => {
     if (!question || !socket) return;
 
