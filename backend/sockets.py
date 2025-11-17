@@ -979,7 +979,3 @@ def register_socket_events(socketio):
         emit('lobby_updated', {
             'lobby': lobby
         })
-<<<<<<< HEAD
-=======
-
->>>>>>> f7ff10cf71c57dc24ddc4e1876a5e11b3f8796a4

@@ -102,6 +102,7 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
       player_name: name,
       max_players: maxPlayers,
       public_id: user?.public_id || null,
+      
     });
     setShowCreateForm(false);
     if (!user) setPlayerName("");
@@ -224,6 +225,7 @@ function Home({ socket, lobbies, onCreateLobby, onJoinLobby }) {
                     setShowJoinForm(!showJoinForm);
                     setShowCreateForm(false);
                     setJoinErrors({});
+                   
                   }}
                 >
                   <LuPaperclip className="btn-icon" />
