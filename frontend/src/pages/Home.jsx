@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Login from "./auth/Login";
 import Register from "./auth/Register";
 import "react-toastify/dist/ReactToastify.css";
-import JoinNameModal from "../components/JoinNameModal";
+import JoinNameModal from "../components/Modals/JoinNameModal";
 
 // Icons
 import { SiApplearcade } from "react-icons/si";

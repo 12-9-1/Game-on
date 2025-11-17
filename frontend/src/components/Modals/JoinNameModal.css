@@ -12,15 +12,6 @@
   animation: fadeIn 0.2s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .join-modal-content {
   background: var(--bg-secondary);
   border: 2px solid var(--gold-600);

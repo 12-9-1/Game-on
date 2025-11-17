@@ -9,7 +9,7 @@ import {
 // Conexion
 import SplashScreen from "./components/SplashScreen";
 import { socket } from "./socket";
-import Modal from "./components/Modal";
+import Modal from "./components/Modals/Modal";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Páginas
