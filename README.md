@@ -33,7 +33,7 @@ Juego multijugador de trivia en tiempo real con lobbys, ranking global, poderes 
 
 <div align="center">
 
-<img src="" alt="Captura de la demo" width="600"/>
+<img src="https://i.imgur.com/2w4UrzN.png" alt="Captura de la demo" width="600"/>
 
 Ver Demo en Vivo: https://game-on-woad.vercel.app/
 
@@ -139,7 +139,7 @@ Game-on/
 
 <div align="center">
   
-Desarrollado con ❤️. 
+Desarrollado con ❤️ por Equipo 4. 
 <br/> Agradecimientos a nuestro profesor Ezequiel Muñoz. <br/>
 <a href="#-battle-quiz-arena">⬆️ Volver arriba ⬆️</a>
   
