@@ -526,7 +526,9 @@ def register_socket_events(socketio):
             else:
                 end_game(lobby_id, socketio)
         
-        timer = threading.Timer(32.0, auto_advance)
+        # Base: 30s de pregunta + hasta 10s de TIME_BOOST + margen pequeño
+        # para evitar cortar el poder de tiempo extra.
+        timer = threading.Timer(45.0, auto_advance)
         timer.daemon = True
         timer.start()
         question_timers[lobby_id] = timer
