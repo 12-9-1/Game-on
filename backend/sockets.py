@@ -351,17 +351,43 @@ def register_socket_events(socketio):
         # Inicializar puntuaciones
         for player in lobby['players']:
             player['score'] = 0
+            # Estado para poderes activos por jugador (ej. double_points)
+            player['active_powers'] = {}
         
         # Inicializar cola de preguntas
         question_queue[lobby_id] = []
+
+        # Inicializar/Resetear gestor de poderes para la nueva ronda
+        if lobby_id in powers_managers:
+            powers_managers[lobby_id].reset_for_new_round()
+        else:
+            powers_managers[lobby_id] = PowersManager()
         
-        # Generar primera pregunta inmediatamente
+        # Generar primera pregunta inmediatamente (con reintentos y fallback)
         print(f'Generando primera pregunta para el lobby {lobby_id}...')
-        first_question = generate_single_question_sync()
-        
+        first_question = None
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+                print(f'  Intento {attempt} de {max_attempts} para generar pregunta...')
+                first_question = generate_single_question_sync()
+                if first_question:
+                    break
+            except Exception as e:
+                print(f'  Excepción generando pregunta (intento {attempt}): {e}')
+            time.sleep(1)
+
         if not first_question:
-            emit('error', {'message': 'Error generando pregunta inicial'})
-            return
+            # Fallback: usar una pregunta local sencilla para no bloquear el inicio
+            print(f'⚠️ No se pudo generar pregunta desde el servicio; usando pregunta de fallback')
+            first_question = {
+                'question': 'Pregunta de respaldo: ¿Cuánto es 2 + 2?',
+                'options': ['1', '2', '3', '4'],
+                'correct_answer': 3,
+                'difficulty': 'easy',
+                'category': 'General',
+                'explanation': '2 + 2 = 4'
+            }
         
         # Inicializar datos del juego
         active_questions[lobby_id] = {
@@ -596,12 +622,26 @@ def register_socket_events(socketio):
         player_score = 0
         for player in lobby['players']:
             if player['socket_id'] == sid:
+                # Aplicar efectos activos (ej. double_points)
+                active = player.get('active_powers', {})
+                if is_correct and 'double_points' in active:
+                    try:
+                        multiplier = int(active['double_points'].get('multiplier', 2))
+                    except Exception:
+                        multiplier = 2
+                    points = points * multiplier
+                    # Consumir el poder de doble puntos tras usarlo
+                    try:
+                        del player['active_powers']['double_points']
+                    except Exception:
+                        pass
+
                 player['score'] = player.get('score', 0) + points
                 player_name = player['name']
                 player_score = player['score']
                 break
         
-        # Guardar respuesta
+        # Guardar respuesta (puntos finales tras aplicar poderes)
         player_answers[lobby_id]['answers'][sid] = {
             'answer_index': answer_index,
             'is_correct': is_correct,
@@ -764,17 +804,42 @@ def register_socket_events(socketio):
             # Resetear puntuaciones para nueva ronda
             for player in lobby['players']:
                 player['score'] = 0
+                player['active_powers'] = {}
+
+            # Resetear gestor de poderes para la nueva ronda (uso único por poder por ronda)
+            if lobby_id in powers_managers:
+                powers_managers[lobby_id].reset_for_new_round()
+            else:
+                powers_managers[lobby_id] = PowersManager()
 
             # Reiniciar cola y generador de preguntas
             question_queue[lobby_id] = []
             start_question_generator(lobby_id)
 
-            # Generar primera pregunta inmediatamente y preparar estado
+            # Generar primera pregunta inmediatamente y preparar estado (con reintentos y fallback)
             print(f'Generando primera pregunta para nueva ronda en lobby {lobby_id}...')
-            first_question = generate_single_question_sync()
+            first_question = None
+            max_attempts = 3
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    print(f'  Intento {attempt} de {max_attempts} para generar pregunta...')
+                    first_question = generate_single_question_sync()
+                    if first_question:
+                        break
+                except Exception as e:
+                    print(f'  Excepción generando pregunta (intento {attempt}): {e}')
+                time.sleep(1)
+
             if not first_question:
-                emit('error', {'message': 'Error generando pregunta inicial de la nueva ronda'})
-                return
+                print(f'⚠️ No se pudo generar pregunta para nueva ronda; usando pregunta de fallback')
+                first_question = {
+                    'question': 'Pregunta de respaldo: ¿Cuánto es 2 + 2?',
+                    'options': ['1', '2', '3', '4'],
+                    'correct_answer': 3,
+                    'difficulty': 'easy',
+                    'category': 'General',
+                    'explanation': '2 + 2 = 4'
+                }
 
             active_questions[lobby_id] = {
                 'current_question': first_question,
@@ -898,6 +963,14 @@ def register_socket_events(socketio):
 
             # Actualizar puntuación del jugador en el lobby con los nuevos puntos
             player['score'] = max(0, result['new_points'])
+
+            # Registrar el poder como activo para el jugador (se consumirá al responder)
+            if 'active_powers' not in player:
+                player['active_powers'] = {}
+            try:
+                player['active_powers'][power_type] = effect
+            except Exception:
+                pass
 
             # Payload de resultado común
             response_payload = {
