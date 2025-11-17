@@ -363,31 +363,17 @@ def register_socket_events(socketio):
         else:
             powers_managers[lobby_id] = PowersManager()
         
-        # Generar primera pregunta inmediatamente (con reintentos y fallback)
-        print(f'Generando primera pregunta para el lobby {lobby_id}...')
-        first_question = None
-        max_attempts = 3
-        for attempt in range(1, max_attempts + 1):
-            try:
-                print(f'  Intento {attempt} de {max_attempts} para generar pregunta...')
-                first_question = generate_single_question_sync()
-                if first_question:
-                    break
-            except Exception as e:
-                print(f'  Excepción generando pregunta (intento {attempt}): {e}')
-            time.sleep(1)
-
-        if not first_question:
-            # Fallback: usar una pregunta local sencilla para no bloquear el inicio
-            print(f'⚠️ No se pudo generar pregunta desde el servicio; usando pregunta de fallback')
-            first_question = {
-                'question': 'Pregunta de respaldo: ¿Cuánto es 2 + 2?',
-                'options': ['1', '2', '3', '4'],
-                'correct_answer': 3,
-                'difficulty': 'easy',
-                'category': 'General',
-                'explanation': '2 + 2 = 4'
-            }
+        # Usar pregunta de fallback inmediata para iniciar el juego sin bloqueo
+        # El generador en background cargará preguntas reales para las próximas rondas
+        print(f'Iniciando juego con pregunta de fallback en lobby {lobby_id}...')
+        first_question = {
+            'question': '¿Cuánto es 2 + 2?',
+            'options': ['1', '2', '3', '4'],
+            'correct_answer': 3,
+            'difficulty': 'easy',
+            'category': 'Matemáticas',
+            'explanation': '2 + 2 = 4'
+        }
         
         # Inicializar datos del juego
         active_questions[lobby_id] = {
@@ -816,30 +802,16 @@ def register_socket_events(socketio):
             question_queue[lobby_id] = []
             start_question_generator(lobby_id)
 
-            # Generar primera pregunta inmediatamente y preparar estado (con reintentos y fallback)
-            print(f'Generando primera pregunta para nueva ronda en lobby {lobby_id}...')
-            first_question = None
-            max_attempts = 3
-            for attempt in range(1, max_attempts + 1):
-                try:
-                    print(f'  Intento {attempt} de {max_attempts} para generar pregunta...')
-                    first_question = generate_single_question_sync()
-                    if first_question:
-                        break
-                except Exception as e:
-                    print(f'  Excepción generando pregunta (intento {attempt}): {e}')
-                time.sleep(1)
-
-            if not first_question:
-                print(f'⚠️ No se pudo generar pregunta para nueva ronda; usando pregunta de fallback')
-                first_question = {
-                    'question': 'Pregunta de respaldo: ¿Cuánto es 2 + 2?',
-                    'options': ['1', '2', '3', '4'],
-                    'correct_answer': 3,
-                    'difficulty': 'easy',
-                    'category': 'General',
-                    'explanation': '2 + 2 = 4'
-                }
+            # Usar pregunta de fallback inmediata para iniciar nueva ronda sin bloqueo
+            print(f'Iniciando nueva ronda con pregunta de fallback en lobby {lobby_id}...')
+            first_question = {
+                'question': '¿Cuánto es 3 × 3?',
+                'options': ['6', '9', '8', '12'],
+                'correct_answer': 1,
+                'difficulty': 'easy',
+                'category': 'Matemáticas',
+                'explanation': '3 × 3 = 9'
+            }
 
             active_questions[lobby_id] = {
                 'current_question': first_question,
