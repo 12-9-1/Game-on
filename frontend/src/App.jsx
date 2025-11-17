@@ -10,7 +10,10 @@ import {
 import SplashScreen from "./components/SplashScreen";
 import { socket } from "./socket";
 import Modal from "./components/Modals/Modal";
+
+// Context
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ConfirmModalProvider } from "./contexts/ConfirmModalContext";
 
 // Páginas
 import Home from "./pages/Home";
@@ -248,7 +251,9 @@ function App() {
       }}
     >
       <AuthProvider>
-        <AppContent />
+        <ConfirmModalProvider>
+          <AppContent />
+        </ConfirmModalProvider>
       </AuthProvider>
     </Router>
   );
