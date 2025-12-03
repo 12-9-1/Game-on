@@ -5,8 +5,11 @@ const cors = require('cors');
 const http = require('http');
 const socketIO = require('socket.io');
 const connectDB = require('./config/database');
-const authRoutes = require('./routes/auth');
-const { registerSocketEvents } = require('./sockets/socketHandler');
+
+// Rutas HTTP agrupadas
+const apiRoutes = require('./routes/routes_http/index.routes');
+// Rutas de sockets (index.routes.js en routes_socket)
+const { registerSocketEvents } = require('./routes/routes_socket');
 
 const app = express();
 const server = http.createServer(app);
@@ -31,15 +34,15 @@ app.use(cors({
   credentials: true
 }));
 
-// Rutas
-app.use('/', authRoutes);
+// Rutas HTTP bajo /api (auth, lobbies, game, etc.)
+app.use('/api', apiRoutes);
 
-// Ruta de prueba
+// Ruta de prueba raíz (opcional)
 app.get('/', (req, res) => {
   res.json({ message: 'Game-On Backend - Node.js' });
 });
 
-// Registrar eventos de Socket.IO
+// Registrar eventos de Socket.IO (lobby + game)
 registerSocketEvents(io);
 
 // Iniciar servidor
@@ -49,7 +52,7 @@ const startServer = async () => {
   try {
     // Conectar a MongoDB
     await connectDB();
-    
+
     server.listen(PORT, () => {
       console.log(`\n${'='.repeat(60)}`);
       console.log(`✓ Servidor iniciado en puerto ${PORT}`);
