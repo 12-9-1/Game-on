@@ -101,104 +101,87 @@ def translate_text(text):
 
 def get_question_from_opentdb(difficulty='medium', retry=0):
     """
-    Obtiene una pregunta de Open Trivia Database API y la traduce al español
-    https://opentdb.com/
-    
+    Obtiene una pregunta desde la API personalizada en español.
+
     Args:
-        difficulty: 'easy', 'medium', o 'hard'
+        difficulty: 'easy', 'medium', o 'hard' (se mapea a los niveles de la API)
         retry: número de reintento (máximo 2)
-    
+
     Returns:
-        dict con la pregunta en español
+        dict con la pregunta en español en el formato interno del juego
     """
     try:
-        # Llamar a la API (solo preguntas de opción múltiple)
-        url = f'https://opentdb.com/api.php?amount=1&type=multiple&difficulty={difficulty}'
-        
+        url = 'https://mi-api-preguntas.onrender.com/preguntas'
+
         response = requests.get(url, timeout=10)
-        
-        # Si es rate limit (429), esperar y reintentar
-        if response.status_code == 429 and retry < 2:
-            wait_time = 2 * (retry + 1)
-            print(f"  ⏳ Rate limit, esperando {wait_time}s...")
-            time.sleep(wait_time)
-            return get_question_from_opentdb(difficulty, retry + 1)
-        
+
         if response.status_code != 200:
-            raise Exception(f"Error en API: {response.status_code}")
-        
+            raise Exception(f"Error en API personalizada: {response.status_code}")
+
         data = response.json()
-        
-        if data['response_code'] != 0:
-            raise Exception(f"API retornó código: {data['response_code']}")
-        
-        question_data = data['results'][0]
-        
-        # Decodificar HTML entities
-        question_text_en = html.unescape(question_data['question'])
-        correct_en = html.unescape(question_data['correct_answer'])
-        incorrect_en = [html.unescape(ans) for ans in question_data['incorrect_answers']]
-        category_en = html.unescape(question_data['category'])
-        
-        print(f"  Pregunta original: {question_text_en[:50]}...")
-        
-        # Traducir pregunta
-        question_text_es = translate_text(question_text_en)
-        
-        # Preparar opciones
-        all_options_en = [correct_en] + incorrect_en
-        
-        # Verificar si alguna opción contiene HTML o código
-        has_code = any('<' in opt and '>' in opt for opt in all_options_en)
-        
-        # Si hay código o son muy cortas, traducir individualmente
-        # Si no, traducir en lote para mejor contexto
-        if has_code or all(len(opt) < 15 for opt in all_options_en):
-            print("  → Traducción individual (código o nombres cortos)")
-            correct_es = translate_text(correct_en)
-            incorrect_es = [translate_text(ans) for ans in incorrect_en]
-            all_options_es = [correct_es] + incorrect_es
+
+        if not isinstance(data, list) or len(data) == 0:
+            raise Exception("La API personalizada no devolvió una lista de preguntas")
+
+        # Mapeo simple de dificultad interna -> dificultad de la API
+        dificultad_map = {
+            'easy': ['Fácil'],
+            'medium': ['Medio'],
+            'hard': ['Difícil', 'Legendario']
+        }
+
+        target_dificultades = dificultad_map.get(difficulty, [])
+
+        if target_dificultades:
+            candidates = [q for q in data if q.get('dificultad') in target_dificultades]
         else:
-            # Traducir en lote con separador
-            options_text = " | ".join(all_options_en)
-            options_translated = translate_text(f"Options: {options_text}")
-            
-            # Separar las opciones traducidas
-            options_es = options_translated.replace("Opciones:", "").replace("Options:", "").strip().split(" | ")
-            
-            # Verificar que la traducción en lote funcionó
-            if len(options_es) == len(all_options_en):
-                correct_es = options_es[0]
-                all_options_es = options_es
-            else:
-                print("  ⚠️ Traducción en lote falló, traduciendo individualmente...")
-                correct_es = translate_text(correct_en)
-                incorrect_es = [translate_text(ans) for ans in incorrect_en]
-                all_options_es = [correct_es] + incorrect_es
-        
-        # Traducir categoría
-        category_es = translate_text(category_en)
-        
-        # Mezclar opciones traducidas
-        random.shuffle(all_options_es)
-        
-        # Encontrar índice de la respuesta correcta
-        correct_index = all_options_es.index(correct_es)
-        
+            candidates = []
+
+        # Si no hay preguntas de esa dificultad, usar todas
+        if not candidates:
+            candidates = data
+
+        question_data = random.choice(candidates)
+
+        question_text_es = question_data.get('pregunta', '')
+        options_es = question_data.get('opciones', [])
+        correct_text = question_data.get('respuesta', '')
+        category_es = question_data.get('categoria', 'General')
+        dificultad_es = question_data.get('dificultad', '')
+
+        print(f"  Pregunta recibida API personalizada: {question_text_es[:50]}...")
+
+        # Asegurar que haya opciones
+        if not options_es:
+            raise Exception("Pregunta sin opciones devuelta por la API personalizada")
+
+        # Buscar índice de la respuesta correcta
+        try:
+            correct_index = options_es.index(correct_text)
+        except ValueError:
+            # Si por alguna razón la respuesta no está en opciones, usar la primera
+            print("  ⚠️ La respuesta no está en opciones, usando índice 0 por defecto")
+            correct_index = 0
+
         result = {
             'question': question_text_es,
-            'options': all_options_es,
+            'options': options_es,
             'correct_answer': correct_index,
-            'difficulty': difficulty,
+            'difficulty': dificultad_es or difficulty,
             'category': category_es,
-            'explanation': f'La respuesta correcta es: {correct_es}'
+            'explanation': f'La respuesta correcta es: {correct_text}'
         }
-        
-        print(f"  ✓ Traducida: {question_text_es[:50]}...")
+
         return result
-        
+
     except Exception as e:
-        print(f"⚠️ Error obteniendo pregunta de OpenTDB: {e}")
+        print(f"⚠️ Error obteniendo pregunta de API personalizada: {e}")
+        # Comportamiento similar al anterior: devolver None para que el llamador reintente
+        if retry < 2:
+            wait_time = 2 * (retry + 1)
+            print(f"  ⏳ Reintentando en {wait_time}s...")
+            time.sleep(wait_time)
+            return get_question_from_opentdb(difficulty, retry + 1)
         return None
 
 
