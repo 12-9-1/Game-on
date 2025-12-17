@@ -9,7 +9,7 @@ const connectDB = require('./config/database');
 // Rutas HTTP agrupadas
 const apiRoutes = require('./routes/routes_http/index.routes');
 // Rutas de sockets (index.routes.js en routes_socket)
-const { registerSocketEvents } = require('./routes/routes_socket');
+const { registerSocketEvents } = require('./routes/routes_socket/index.routes');
 
 const app = express();
 const server = http.createServer(app);

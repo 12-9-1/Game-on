@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// frontend/App.jsx
+import { useState, useEffect, useCallback } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -44,82 +45,94 @@ const AppContent = ({ socketConnected }) => {
   const [showRegister, setShowRegister] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  const handleOpenLogin = () => setShowLogin(true);
-  const handleCloseLogin = () => setShowLogin(false);
-  const handleOpenRegister = () => setShowRegister(true);
-  const handleCloseRegister = () => setShowRegister(false);
+  const handleOpenLogin = useCallback(() => setShowLogin(true), []);
+  const handleCloseLogin = useCallback(() => setShowLogin(false), []);
+  const handleOpenRegister = useCallback(() => setShowRegister(true), []);
+  const handleCloseRegister = useCallback(() => setShowRegister(false), []);
 
+  // Toast para errores
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  // Listeners del socket (registrar una sola vez)
   useEffect(() => {
     if (!socket || !socketConnected) return;
 
-    socket.on("connected", (data) => {
-    });
+    const handleLobbiesList = (data) => {
+      setLobbies((prev) => {
+        // Solo actualizar si cambia
+        if (JSON.stringify(prev) === JSON.stringify(data.lobbies)) return prev;
+        return data.lobbies;
+      });
+    };
 
-    socket.on("error", (data) => {
-      console.error("Error:", data.message);
-      setError(data.message);
-      setTimeout(() => setError(null), 3000);
-    });
-
-    socket.on("lobbies_list", (data) => {
-      setLobbies(data.lobbies);
-    });
-
-    socket.on("lobby_created", (data) => setCurrentLobby(data.lobby));
-    socket.on("lobby_joined", (data) => setCurrentLobby(data.lobby));
-    socket.on("lobby_left", (data) => {
-      console.log(data.message);
+    const handleLobbyCreated = (data) => setCurrentLobby(data.lobby);
+    const handleLobbyJoined = (data) => setCurrentLobby(data.lobby);
+    const handleLobbyLeft = () => {
       setCurrentLobby(null);
       socket.emit("get_lobbies");
-    });
-    socket.on("lobby_closed", (data) => {
+    };
+    const handleLobbyClosed = (data) => {
       setCurrentLobby(null);
       setGameActive(false);
       setError(data.message);
-      setTimeout(() => setError(null), 3000);
       socket.emit("get_lobbies");
-    });
-    socket.on("game_started", (data) => setGameActive(true));
-    socket.on("returned_to_lobby", (data) => {
+    };
+    const handleGameStarted = () => setGameActive(true);
+    const handleReturnedToLobby = (data) => {
       setGameActive(false);
       setCurrentLobby(data.lobby);
-    });
+    };
 
-    // Solicitar lista de lobbies al montar
+    socket.on("lobbies_list", handleLobbiesList);
+    socket.on("lobby_created", handleLobbyCreated);
+    socket.on("lobby_joined", handleLobbyJoined);
+    socket.on("lobby_left", handleLobbyLeft);
+    socket.on("lobby_closed", handleLobbyClosed);
+    socket.on("game_started", handleGameStarted);
+    socket.on("returned_to_lobby", handleReturnedToLobby);
+
+    // Solicitar lista al montar
     socket.emit("get_lobbies");
 
-    // Cleanup: solo remover listeners
     return () => {
-      socket.off("connected");
-      socket.off("error");
-      socket.off("lobbies_list");
-      socket.off("lobby_created");
-      socket.off("lobby_joined");
-      socket.off("lobby_left");
-      socket.off("lobby_closed");
-      socket.off("game_started");
-      socket.off("returned_to_lobby");
+      socket.off("lobbies_list", handleLobbiesList);
+      socket.off("lobby_created", handleLobbyCreated);
+      socket.off("lobby_joined", handleLobbyJoined);
+      socket.off("lobby_left", handleLobbyLeft);
+      socket.off("lobby_closed", handleLobbyClosed);
+      socket.off("game_started", handleGameStarted);
+      socket.off("returned_to_lobby", handleReturnedToLobby);
     };
   }, [socketConnected]);
 
-  // Actualizar lista de lobbies periódicamente
+  // Actualizar lobbies periódicamente solo si no hay lobby activo
   useEffect(() => {
     if (!socket || !socketConnected || currentLobby) return;
 
     const interval = setInterval(() => {
       socket.emit("get_lobbies");
-    }, 3000);
+    }, 5000); // cada 5s en lugar de 3s
 
     return () => clearInterval(interval);
   }, [socketConnected, currentLobby]);
 
-  const handleCreateLobby = (data) => socket?.emit("create_lobby", data);
-  const handleJoinLobby = (data) => socket?.emit("join_lobby", data);
-  const handleLeaveGame = () => {
+  const handleCreateLobby = useCallback(
+    (data) => socket?.emit("create_lobby", data),
+    []
+  );
+  const handleJoinLobby = useCallback(
+    (data) => socket?.emit("join_lobby", data),
+    []
+  );
+  const handleLeaveGame = useCallback(() => {
     socket?.emit("leave_lobby");
     setGameActive(false);
     setCurrentLobby(null);
-  };
+  }, []);
 
   return (
     <div className="app-container">
@@ -136,8 +149,6 @@ const AppContent = ({ socketConnected }) => {
         theme="dark"
       />
       <Navbar onLeaveGame={handleLeaveGame} />
-
-      {error && toast.error(error)}
 
       <Modal isOpen={showLogin} onClose={handleCloseLogin}>
         <Login onSuccess={handleCloseLogin} />
@@ -199,12 +210,10 @@ const AppContent = ({ socketConnected }) => {
 };
 
 function App() {
-  // ✅ Estado del socket a nivel de App (NO se reinicia al navegar)
   const [socketConnected, setSocketConnected] = useState(
     socket?.connected || false
   );
 
-  // ✅ Control del Splash Screen (solo una vez por sesión)
   const [showSplash, setShowSplash] = useState(() => {
     const hasSeenSplash = sessionStorage.getItem("hasSeenSplash");
     return !hasSeenSplash;
@@ -215,7 +224,7 @@ function App() {
     setShowSplash(false);
   };
 
-  // ✅ Configurar listeners del socket UNA SOLA VEZ
+  // Listeners de conexión
   useEffect(() => {
     if (!socket) return;
 
@@ -223,33 +232,21 @@ function App() {
       setSocketConnected(true);
       socket.emit("get_lobbies");
     };
+    const handleDisconnect = () => setSocketConnected(false);
 
-    const handleDisconnect = () => {
-      setSocketConnected(false);
-    };
-
-    // Listeners
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
 
-    // Si el socket ya está conectado al montar
-    if (socket.connected) {
-      setSocketConnected(true);
-    }
+    if (socket.connected) setSocketConnected(true);
 
-    // Cleanup: solo remover listeners
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
     };
   }, []);
 
-  // ✅ Mostrar Splash Screen (solo primera vez)
-  if (showSplash) {
-    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
-  }
+  if (showSplash) return <SplashScreen onAnimationComplete={handleSplashComplete} />;
 
-  // ✅ Mostrar loading solo si NO está conectado
   if (!socketConnected) {
     return (
       <div className="app-container">
@@ -262,7 +259,6 @@ function App() {
     );
   }
 
-  // ✅ App principal con socket conectado
   return (
     <Router
       future={{

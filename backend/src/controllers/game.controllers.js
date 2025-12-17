@@ -1,4 +1,4 @@
-const { generateSingleQuestionSync, generateRoundQuestions } = require('../services/aiService');
+const { generateSingleQuestionSync, generateRoundQuestions } = require('../controllers/aiService');
 const { lobbies, userLobbies } = require('./lobby.controllers');
 
 // Estado en memoria del juego
@@ -240,9 +240,7 @@ const handleStartGame = async (io, socket) => {
 
   io.to(lobbyId).emit('lobby_updated', { lobby });
 
-  setTimeout(() => {
-    sendNextQuestion(io, lobbyId);
-  }, 2000);
+  sendNextQuestion(io, lobbyId);
 };
 
 // submit_answer
@@ -363,10 +361,13 @@ const handleTimeUp = (io, socket) => {
 
   const lobbyId = userLobbies[sid];
 
-  if (!activeQuestions[lobbyId] || !playerAnswers[lobbyId]) {
+  if (!lobbies[lobbyId] || !activeQuestions[lobbyId] || !playerAnswers[lobbyId]) {
     return;
   }
 
+  const lobby = lobbies[lobbyId];
+
+  // Registrar que este jugador no respondió a tiempo (si aún no tenía respuesta)
   if (!playerAnswers[lobbyId].answers[sid]) {
     playerAnswers[lobbyId].answers[sid] = {
       answer_index: -1,
@@ -374,6 +375,31 @@ const handleTimeUp = (io, socket) => {
       points: 0,
       response_time: 30
     };
+  }
+
+  const totalAnswers = Object.keys(playerAnswers[lobbyId].answers).length;
+  const totalPlayers = lobby.players.length;
+
+  // Si ya todos los jugadores tienen respuesta (correcta, incorrecta o timeout),
+  // avanzamos a la siguiente pregunta exactamente igual que en handleSubmitAnswer
+  if (totalAnswers >= totalPlayers) {
+    if (questionTimers[lobbyId]) {
+      clearTimeout(questionTimers[lobbyId]);
+      console.log('✓ Tiempo agotado para todos los jugadores, cancelando temporizador automático');
+    }
+
+    setTimeout(() => {
+      const nextQuestion = getNextQuestion(lobbyId);
+
+      if (nextQuestion) {
+        activeQuestions[lobbyId].current_question = nextQuestion;
+        activeQuestions[lobbyId].question_number += 1;
+        sendNextQuestion(io, lobbyId);
+      } else {
+        console.log('No hay más preguntas disponibles');
+        endGame(io, lobbyId);
+      }
+    }, 3000);
   }
 };
 

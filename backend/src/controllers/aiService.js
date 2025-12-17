@@ -5,14 +5,14 @@ const axios = require('axios');
  * Usa Open Trivia Database API
  */
 
-const NO_TRANSLATE_WORDS = {
+const NO_TRANSLATE_WORDS = new Set([
   'gamecube', 'dreamcast', 'playstation', 'xbox', 'wii', 'switch',
   'snes', 'nes', 'n64', 'ps1', 'ps2', 'ps3', 'ps4', 'ps5',
   'gameboy', 'ds', 'psp', 'vita', 'atari', 'sega',
   'christopher', 'rodrigo', 'alexander', 'elizabeth',
   'nintendo', 'sony', 'microsoft', 'apple', 'google',
   'facebook', 'twitter', 'youtube', 'netflix',
-};
+]);
 
 /**
  * Decodifica entidades HTML
@@ -39,9 +39,9 @@ const decodeHtmlEntities = (text) => {
  */
 const getQuestionFromOpenTDB = async (difficulty = 'medium', retry = 0) => {
   try {
-    const url = `https://opentdb.com/api.php?amount=1&type=multiple&difficulty=${difficulty}`;
+    const url = 'https://mi-api-preguntas.onrender.com/preguntas';
     
-    const response = await axios.get(url, { timeout: 10000 });
+    const response = await axios.get(url, { timeout: 2000 });
     
     if (response.status !== 200) {
       throw new Error(`API error: ${response.status}`);
